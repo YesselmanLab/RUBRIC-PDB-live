@@ -171,11 +171,11 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 }
 .chip:hover { border-color: var(--accent); }
 
-.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 30px 0 0; max-width: 860px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 30px 0 0; max-width: 660px; }
 .stats div { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
 .stats dt { color: var(--muted); font-size: .8rem; font-weight: 500; }
 .stats dd { margin: 2px 0 0; font-size: 1.25rem; font-weight: 650; font-variant-numeric: tabular-nums; }
-@media (max-width: 720px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .stats { grid-template-columns: 1fr; } }
 
 /* ---- Buttons ------------------------------------------------------------ */
 .btn {

@@ -138,7 +138,6 @@
   function renderStats() {
     const last = state.lastUpdate;
     $("stat-entries").textContent = fmtInt(state.rows.length);
-    $("stat-pairs").textContent = fmtInt(state.rows.reduce((s, r) => s + (r.n_rna_pairs || 0), 0));
     $("stat-updated").textContent = last ? last.date : "n/a";
     $("stat-version").textContent = last ? last.rubric_version : "n/a";
   }
