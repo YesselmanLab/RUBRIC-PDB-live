@@ -9,8 +9,7 @@ RUBRIC version, and drops entries that are no longer in the PDB. It then rewrite
     data/manifest.json   per entry: RCSB revision date, status, RUBRIC version, results
     data/updates.csv     one line per run
 
-and stores the full RUBRIC report of each entry in results/entries/<xy>/<ID>.json.gz,
-where <xy> is the middle two characters of the PDB ID.
+and stores the full RUBRIC report of each entry in results/entries/<ID>.json.gz.
 
     python pipeline/update.py                  # incremental update
     python pipeline/update.py --full           # rescore every entry
@@ -177,7 +176,7 @@ def engine_version(engine):
 
 
 def result_path(results_dir, pdb_id):
-    return results_dir / pdb_id[1:3].lower() / f"{pdb_id}.json.gz"
+    return results_dir / f"{pdb_id}.json.gz"
 
 
 def chain_of(res_id):
