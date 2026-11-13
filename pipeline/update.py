@@ -417,8 +417,12 @@ def main():
         if meta is None:
             continue
         if entry["status"] == "scored":
-            summary.append({**meta, **entry["results"], "rubric_version": entry["rubric_version"],
-                            "scored_on": entry["scored_on"]})
+            row = {**meta, **entry["results"], "rubric_version": entry["rubric_version"],
+                   "scored_on": entry["scored_on"]}
+            # Suiteness with exactly two decimals (0.70, not 0.7), as in wwPDB reports.
+            if row.get("backbone_suiteness") is not None:
+                row["backbone_suiteness"] = f"{row['backbone_suiteness']:.2f}"
+            summary.append(row)
         else:
             failures.append({"pdb_id": pdb_id, "revision_date": entry["revision_date"],
                              "error": entry["error"], "rubric_version": entry["rubric_version"],

@@ -41,6 +41,8 @@
     <section id="view-home">
       <div class="hero">
         <div class="wrap">
+         <div class="hero-grid">
+         <div class="hero-main">
           <p class="eyebrow">Updated every week from the Protein Data Bank</p>
           <h1>RNA structure quality for every PDB entry</h1>
           <p class="lede">RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the PDB. Look up one structure, or filter and download the whole set.</p>
@@ -57,6 +59,16 @@
             <button type="button" class="chip" data-open="1EHZ">1EHZ</button>
             <button type="button" class="chip" data-open="7K00">7K00</button>
           </p>
+         </div>
+         <figure class="hero-chart" aria-labelledby="chart-title">
+           <figcaption>
+             <span class="chart-title" id="chart-title">RNA-containing entries released per year</span>
+             <span class="legend-inline" id="chart-legend"></span>
+           </figcaption>
+           <div id="year-chart" class="year-chart"><div class="skeleton" style="height:100%"></div></div>
+           <div class="chart-tip" id="chart-tip" hidden></div>
+         </figure>
+         </div>
 
           <dl class="stats" id="stats">
             <div><dt>Entries</dt><dd id="stat-entries">&nbsp;</dd></div>
@@ -65,6 +77,14 @@
             <div><dt>RUBRIC version</dt><dd id="stat-version">&nbsp;</dd></div>
           </dl>
         </div>
+      </div>
+
+      <div class="wrap latest" id="latest" hidden>
+        <div class="latest-head">
+          <h2>New in the latest PDB release</h2>
+          <span class="muted small" id="latest-note"></span>
+        </div>
+        <div class="latest-row" id="latest-row"></div>
       </div>
 
       <div class="wrap browse" id="browse">
@@ -128,13 +148,23 @@
           <button type="button" class="link-btn" id="f-reset">Reset filters</button>
         </form>
 
+        <div class="active-chips" id="active-chips"></div>
+
         <div class="table-meta">
           <span id="result-count" aria-live="polite">Loading entries</span>
-          <label class="page-size">Rows
-            <select id="page-size">
-              <option>25</option><option selected>50</option><option>100</option>
-            </select>
-          </label>
+          <div class="table-tools">
+            <details class="col-picker" id="col-picker">
+              <summary class="btn btn-sm">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16M9 3v4M15 10v4M9 17v4"/></svg>Columns
+              </summary>
+              <div class="col-menu" id="col-menu"></div>
+            </details>
+            <label class="page-size">Rows
+              <select id="page-size">
+                <option>25</option><option selected>50</option><option>100</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div class="table-wrap">
@@ -169,8 +199,21 @@
             <li><span class="tier tier-priority">Priority review</span> score below 80</li>
           </ul>
           <p class="muted small">Ambiguous pairs, whose geometry lies between two classes, and pairs involving DNA are not scored.</p>
-          <h3>Use and citation</h3>
-          <p>The results are free to use under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>; please cite RUBRIC. Any structure, including unpublished models, can be checked locally with <code>pip install rubric-rna</code>.</p>
+          <h3>Use</h3>
+          <p>The results are free to use under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Any structure, including unpublished models, can be checked locally with <code>pip install rubric-rna</code>.</p>
+        </div>
+      </div>
+      <div class="wrap">
+        <div class="cite" id="cite">
+          <div class="cite-text">
+            <h3>How to cite</h3>
+            <p class="cite-ref" id="cite-ref"></p>
+            <p class="muted small">The citation of the RUBRIC paper will be added here once it is published.</p>
+          </div>
+          <div class="cite-actions">
+            <button type="button" class="btn" id="cite-copy">Copy citation</button>
+            <button type="button" class="btn" id="cite-bibtex">Copy BibTeX</button>
+          </div>
         </div>
       </div>
     </section>
