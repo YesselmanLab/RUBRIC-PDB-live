@@ -48,7 +48,7 @@ jobs:
         run: pip install -r pipeline/requirements.txt
 
       - name: Score new and revised entries
-        run: python pipeline/update.py --workers 4 ${{ inputs.full && '--full' || '' }}
+        run: python pipeline/update.py --workers 4 ${{ format('{0}', inputs.full) == 'true' && '--full' || '' }}
 
       - name: Publish the changed reports to the entries branch
         working-directory: results/entries

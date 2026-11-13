@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RUBRIC-PDB-live</title>
+  <meta name="description" content="RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the Protein Data Bank, updated weekly.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234C72B0'/%3E%3Cpath d='M9 8h8a5 5 0 0 1 0 10h-8zM9 18l9 7' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>
+    try {
+      var t = localStorage.getItem("rubric-theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#" data-route="home">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <span class="brand-name">RUBRIC<span class="brand-sub">-PDB-live</span></span>
+      </a>
+      <nav class="topnav">
+        <a href="#" data-route="home">Browse</a>
+        <a href="#about" data-scroll="about">About</a>
+        <a href="https://github.com/YesselmanLab/RUBRIC-PDB-live" target="_blank" rel="noopener">GitHub</a>
+        <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch light or dark theme" title="Switch light or dark theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Home: hero, search and the table of all entries -->
+    <section id="view-home">
+      <div class="hero">
+        <div class="wrap">
+          <p class="eyebrow">Updated every week from the Protein Data Bank</p>
+          <h1>RNA structure quality for every PDB entry</h1>
+          <p class="lede">RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the PDB. Look up one structure, or filter and download the whole set.</p>
+
+          <div class="search" role="search">
+            <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+            <input id="search-input" type="search" autocomplete="off" spellcheck="false"
+                   placeholder="Search a PDB ID (e.g. 1GID) or a title word (e.g. riboswitch)"
+                   aria-label="Search by PDB ID or title" aria-controls="search-suggest" aria-expanded="false">
+            <ul id="search-suggest" class="suggest" role="listbox" hidden></ul>
+          </div>
+          <p class="examples">Try
+            <button type="button" class="chip" data-open="1GID">1GID</button>
+            <button type="button" class="chip" data-open="1EHZ">1EHZ</button>
+            <button type="button" class="chip" data-open="7K00">7K00</button>
+          </p>
+
+          <dl class="stats" id="stats">
+            <div><dt>Entries</dt><dd id="stat-entries">&nbsp;</dd></div>
+            <div><dt>RNA-RNA base pairs</dt><dd id="stat-pairs">&nbsp;</dd></div>
+            <div><dt>Last updated</dt><dd id="stat-updated">&nbsp;</dd></div>
+            <div><dt>RUBRIC version</dt><dd id="stat-version">&nbsp;</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="wrap browse" id="browse">
+        <div class="browse-head">
+          <h2>All entries</h2>
+          <div class="browse-actions">
+            <button type="button" class="btn" id="download-filtered">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>
+              Filtered rows (CSV)
+            </button>
+            <a class="btn btn-primary" href="data/summary.csv" download="rubric_pdb_summary.csv">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>
+              Full table (CSV)
+            </a>
+          </div>
+        </div>
+
+        <form class="filters" id="filters" autocomplete="off" onsubmit="return false">
+          <label class="field field-grow">
+            <span>Text</span>
+            <input type="search" id="f-text" placeholder="PDB ID or words in the title">
+          </label>
+          <label class="field">
+            <span>Method</span>
+            <select id="f-method">
+              <option value="">All methods</option>
+              <option value="X-ray">X-ray</option>
+              <option value="Cryo-EM">Cryo-EM</option>
+              <option value="NMR">NMR</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label class="field field-sm">
+            <span>Resolution up to (Å)</span>
+            <input type="number" id="f-res" min="0" step="0.1" placeholder="any">
+          </label>
+          <div class="field field-range">
+            <span>Released</span>
+            <div class="range">
+              <input type="number" id="f-year-min" placeholder="from" aria-label="Released from year">
+              <span class="range-sep">to</span>
+              <input type="number" id="f-year-max" placeholder="to" aria-label="Released up to year">
+            </div>
+          </div>
+          <div class="field field-range">
+            <span>Pair score</span>
+            <div class="range">
+              <input type="number" id="f-score-min" min="0" max="100" placeholder="min" aria-label="Minimum pair score">
+              <span class="range-sep">to</span>
+              <input type="number" id="f-score-max" min="0" max="100" placeholder="max" aria-label="Maximum pair score">
+            </div>
+          </div>
+          <label class="check">
+            <input type="checkbox" id="f-priority">
+            <span>Has priority-review pairs</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="f-rna">
+            <span>Has RNA-RNA pairs</span>
+          </label>
+          <button type="button" class="link-btn" id="f-reset">Reset filters</button>
+        </form>
+
+        <div class="table-meta">
+          <span id="result-count" aria-live="polite">Loading entries</span>
+          <label class="page-size">Rows
+            <select id="page-size">
+              <option>25</option><option selected>50</option><option>100</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data" id="entries-table">
+            <thead><tr id="entries-head"></tr></thead>
+            <tbody id="entries-body">
+              <tr><td class="empty" colspan="12"><span class="spinner"></span> Loading the table</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <nav class="pager" id="pager" aria-label="Table pages"></nav>
+      </div>
+    </section>
+
+    <!-- Entry: one PDB entry -->
+    <section id="view-entry" hidden>
+      <div class="wrap entry" id="entry"></div>
+    </section>
+
+    <section class="about" id="about">
+      <div class="wrap about-grid">
+        <div>
+          <h2>About</h2>
+          <p><a href="https://github.com/YesselmanLab/RUBRIC" target="_blank" rel="noopener">RUBRIC</a> classifies the base pairs of an RNA structure in the Leontis-Westhof scheme and scores each pair from 0 to 100 against pairs of the same type and class in high-quality structures. It also assigns each backbone suite to a conformer, suggests target torsions for suites that fit poorly, and flags riboses whose pucker is inconsistent.</p>
+          <p>Every Thursday, the day after the weekly PDB release, this site scores the RNA entries that are new or were revised and removes entries that were made obsolete. All results come from one RUBRIC version, shown at the top of the page.</p>
+        </div>
+        <div>
+          <h3>Pair tiers</h3>
+          <ul class="legend">
+            <li><span class="tier tier-preferred">Preferred</span> score 100</li>
+            <li><span class="tier tier-secondary">Secondary review</span> score 80 or more, below 100</li>
+            <li><span class="tier tier-priority">Priority review</span> score below 80</li>
+          </ul>
+          <p class="muted small">Ambiguous pairs, whose geometry lies between two classes, and pairs involving DNA are not scored.</p>
+          <h3>Use and citation</h3>
+          <p>The results are free to use under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>; please cite RUBRIC. Any structure, including unpublished models, can be checked locally with <code>pip install rubric-rna</code>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>Yesselman Lab</span>
+      <span class="muted">Structures from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a></span>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
