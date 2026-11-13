@@ -7,7 +7,6 @@
 (function () {
   "use strict";
 
-  const SITE_URL = "https://yesselmanlab.github.io/RUBRIC-PDB-live/";
   const REPORT_URL = "https://raw.githubusercontent.com/YesselmanLab/RUBRIC-PDB-live/entries/";
   const RCSB_URL = "https://www.rcsb.org/structure/";
   const RCSB_IMAGE = (id) => `https://cdn.rcsb.org/images/structures/${id.toLowerCase()}_assembly-1.jpeg`;
@@ -823,25 +822,6 @@
     draw();
   }
 
-  // ---- Citation ------------------------------------------------------------------------
-
-  function renderCite() {
-    const today = new Date().toISOString().slice(0, 10);
-    const last = state.lastUpdate;
-    const version = last ? `RUBRIC ${last.rubric_version}, data of ${last.date}` : "";
-    const text = `Yesselman Lab. RUBRIC-PDB-live: RUBRIC results for every RNA-containing entry in the Protein Data Bank. ${SITE_URL} (accessed ${today}${version ? "; " + version : ""}).`;
-    $("cite-ref").textContent = text;
-    const bib = `@misc{rubric_pdb_live,
-  author       = {{Yesselman Lab}},
-  title        = {{RUBRIC-PDB-live}: {RUBRIC} results for every {RNA}-containing entry in the {Protein Data Bank}},
-  howpublished = {\\url{${SITE_URL}}},
-  note         = {Accessed ${today}${version ? "; " + version : ""}},
-  year         = {${today.slice(0, 4)}}
-}`;
-    $("cite-copy").onclick = () => copyText(text, "Citation copied");
-    $("cite-bibtex").onclick = () => copyText(bib, "BibTeX copied");
-  }
-
   // ---- Routing -----------------------------------------------------------------------
 
   function route() {
@@ -893,7 +873,6 @@
   loadData()
     .then(() => {
       renderStats();
-      renderCite();
       applyFilters();
       route();
     })
