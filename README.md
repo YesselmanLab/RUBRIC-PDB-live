@@ -1,7 +1,7 @@
 # RUBRIC-PDB-live
 
 RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the
-Protein Data Bank, updated every two weeks.
+Protein Data Bank, updated weekly.
 
 [RUBRIC](https://github.com/YesselmanLab/RUBRIC) classifies the base pairs of an RNA
 structure in the Leontis-Westhof scheme, scores each pair from 0 to 100 against
@@ -45,7 +45,8 @@ The full report of a single entry can also be produced locally with
 
 ## Updates
 
-A scheduled GitHub Actions job asks RCSB for every entry with an RNA polymer, scores
+A scheduled GitHub Actions job runs every Thursday, the day after the weekly PDB
+release. It asks RCSB for every entry with an RNA polymer, scores
 the entries that are new or were revised since they were last scored, removes
 obsoleted entries and publishes the updated files. When RUBRIC itself changes,
 every entry is rescored, so all rows always come from one RUBRIC version.

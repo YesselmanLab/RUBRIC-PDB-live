@@ -1,0 +1,76 @@
+name: Update RUBRIC results
+
+# Every Thursday (the day after the weekly PDB release) this job scores the RNA
+# entries that are new or were revised, removes obsoleted entries, pushes the changed
+# reports to the entries branch and the updated tables in data/ to main. It can also
+# be started by hand from the Actions tab.
+
+on:
+  schedule:
+    - cron: "0 6 * * 4"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Rescore every entry (after a RUBRIC update)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7.0.1
+
+      - name: Check out the reports (entries branch)
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: entries
+          path: results/entries
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install RUBRIC
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Score new and revised entries
+        run: python pipeline/update.py --workers 4 ${{ inputs.full && '--full' || '' }}
+
+      - name: Publish the changed reports to the entries branch
+        working-directory: results/entries
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No report changed"
+          else
+            git commit -q -m "Update reports ($(date -u +%F))"
+            git push origin HEAD:entries
+          fi
+
+      - name: Publish the updated tables to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "No table changed"
+          else
+            git commit -q -m "Update results ($(date -u +%F))"
+            git push origin HEAD:main
+          fi
