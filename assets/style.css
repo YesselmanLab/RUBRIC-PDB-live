@@ -370,51 +370,9 @@ td.empty { text-align: center; color: var(--muted); padding: 40px 12px; white-sp
   background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: .9rem; box-shadow: var(--shadow-lg);
 }
 
-/* ---- Hero layout and chart ---------------------------------------------- */
 :root { --xray: #4c72b0; --em: #dd8452; --nmr: #8c8c8c; --other: #b9c2d0; }
 :root[data-theme="dark"] { --xray: #7fa2dc; --em: #ec9a63; --nmr: #9aa1ad; --other: #4a5568; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --xray: #7fa2dc; --em: #ec9a63; --nmr: #9aa1ad; --other: #4a5568; } }
-.hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 40px; align-items: center; }
-.hero-main .lede { max-width: 620px; }
-@media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; gap: 24px; } }
-.hero .stats { max-width: none; }
-.hero-chart {
-  position: relative; margin: 0; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 16px 10px; box-shadow: var(--shadow);
-}
-.hero-chart figcaption { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-.chart-title { font-weight: 600; font-size: .92rem; }
-.legend-inline { display: flex; gap: 12px; flex-wrap: wrap; font-size: .8rem; color: var(--text-2); }
-.legend-inline i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
-.year-chart { height: 230px; }
-.year-chart svg { width: 100%; height: 100%; display: block; overflow: visible; stroke: none; }
-.year-chart svg * { stroke: none; }
-.year-chart .axis text { fill: var(--muted); font-size: 10px; font-family: var(--sans); }
-.year-chart .axis line, .year-chart .grid line { stroke: var(--border); stroke-width: 1; }
-.year-chart .bar { cursor: default; }
-.year-chart .col:hover .bar { opacity: .8; }
-.year-chart .hit { fill: transparent; }
-.chart-tip {
-  position: absolute; pointer-events: none; z-index: 5; background: var(--text); color: var(--bg);
-  border-radius: 8px; padding: 7px 10px; font-size: .8rem; line-height: 1.45; box-shadow: var(--shadow-lg); white-space: nowrap;
-}
-.chart-tip b { font-weight: 650; }
-
-/* ---- Latest release strip ----------------------------------------------- */
-.latest { padding-top: 30px; }
-.latest-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.latest-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
-.latest-card {
-  scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; text-align: left;
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 12px 14px; cursor: pointer; font: inherit; color: inherit; box-shadow: var(--shadow); min-height: 128px;
-}
-.latest-card:hover { border-color: var(--accent); }
-.latest-card .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.latest-card .id { font: 600 1rem var(--mono); color: var(--accent-strong); }
-.latest-card .t { font-size: .86rem; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.latest-card .nums { margin-top: auto; display: flex; gap: 12px; font-size: .8rem; color: var(--muted); }
-.latest-card .nums b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* ---- Method badges ------------------------------------------------------ */
 .method { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; font-size: .8rem; font-weight: 500; white-space: nowrap; }
@@ -494,3 +452,10 @@ tr.is-focused td { background: var(--accent-soft); }
 
 /* Mol*: hide the scene-snapshot selector that MolViewSpec scenes add */
 .viewer-mount .msp-viewport-top-left-controls { display: none; }
+.swatch { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--text-2); }
+.swatch i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; }
+.viewer-caption {
+  position: absolute; left: 12px; bottom: 12px; z-index: 5; pointer-events: none;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px; font: 500 .86rem var(--mono); color: var(--text); box-shadow: var(--shadow);
+}

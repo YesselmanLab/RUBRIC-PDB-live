@@ -41,8 +41,6 @@
     <section id="view-home">
       <div class="hero">
         <div class="wrap">
-         <div class="hero-grid">
-         <div class="hero-main">
           <p class="eyebrow">Updated every week from the Protein Data Bank</p>
           <h1>RNA structure quality for every PDB entry</h1>
           <p class="lede">RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the PDB. Look up one structure, or filter and download the whole set.</p>
@@ -59,16 +57,6 @@
             <button type="button" class="chip" data-open="1EHZ">1EHZ</button>
             <button type="button" class="chip" data-open="7K00">7K00</button>
           </p>
-         </div>
-         <figure class="hero-chart" aria-labelledby="chart-title">
-           <figcaption>
-             <span class="chart-title" id="chart-title">RNA-containing entries released per year</span>
-             <span class="legend-inline" id="chart-legend"></span>
-           </figcaption>
-           <div id="year-chart" class="year-chart"><div class="skeleton" style="height:100%"></div></div>
-           <div class="chart-tip" id="chart-tip" hidden></div>
-         </figure>
-         </div>
 
           <dl class="stats" id="stats">
             <div><dt>Entries</dt><dd id="stat-entries">&nbsp;</dd></div>
@@ -77,14 +65,6 @@
             <div><dt>RUBRIC version</dt><dd id="stat-version">&nbsp;</dd></div>
           </dl>
         </div>
-      </div>
-
-      <div class="wrap latest" id="latest" hidden>
-        <div class="latest-head">
-          <h2>New in the latest PDB release</h2>
-          <span class="muted small" id="latest-note"></span>
-        </div>
-        <div class="latest-row" id="latest-row"></div>
       </div>
 
       <div class="wrap browse" id="browse">

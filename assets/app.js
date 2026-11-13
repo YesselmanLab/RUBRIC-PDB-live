@@ -16,7 +16,9 @@
   const RCSB_BCIF = (id) => `https://models.rcsb.org/${id.toLowerCase()}.bcif`;
   const MOLSTAR = "https://cdn.jsdelivr.net/npm/molstar@5.13.1/build/viewer/molstar";
   const ROW_LIMIT = 300;  // rows shown at first in the entry tables
-  const COLOR = { priority: "#c44e52", secondary: "#dd8452", cartoon: "#c4cad4" };
+  // Display colours of the RUBRIC PyMOL plug-in (integrations/pymol/rubric_pymol.py).
+  const COLOR = { priority: "#ff0000", cartoon: "#b3b3b3", protein: "#dcdcdc", pucker: "#00bfd9",
+                  puckerSticks: "#999999", suite: "#d81b9a", focusGrey: "#808080" };
 
   const state = {
     rows: [],
@@ -107,7 +109,6 @@
     const next = currentTheme() === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     store.set("rubric-theme", next);
-    if (state.rows.length) renderYearChart();
   });
 
   // ---- Data loading ------------------------------------------------------------
@@ -146,109 +147,6 @@
     $("stat-pairs").textContent = fmtInt(state.rows.reduce((s, r) => s + (r.n_rna_pairs || 0), 0));
     $("stat-updated").textContent = last ? last.date : "n/a";
     $("stat-version").textContent = last ? last.rubric_version : "n/a";
-  }
-
-  // ---- Hero chart: entries per release year, by method ----------------------------
-
-  const GROUPS = [
-    { key: "X-ray", var: "--xray" },
-    { key: "Cryo-EM", var: "--em" },
-    { key: "NMR", var: "--nmr" },
-    { key: "Other", var: "--other" },
-  ];
-
-  function renderYearChart() {
-    const css = getComputedStyle(document.documentElement);
-    const color = (g) => css.getPropertyValue(g.var).trim();
-    const byYear = new Map();
-    for (const r of state.rows) {
-      if (!r.year) continue;
-      const y = byYear.get(r.year) || { "X-ray": 0, "Cryo-EM": 0, "NMR": 0, "Other": 0 };
-      y[r.method_group] += 1;
-      byYear.set(r.year, y);
-    }
-    const years = [...byYear.keys()].sort((a, b) => a - b);
-    if (!years.length) return;
-    const y0 = years[0];
-    const y1 = years[years.length - 1];
-    const all = [];
-    for (let y = y0; y <= y1; y++) all.push([y, byYear.get(y) || { "X-ray": 0, "Cryo-EM": 0, "NMR": 0, "Other": 0 }]);
-    const totals = all.map(([, c]) => GROUPS.reduce((s, g) => s + c[g.key], 0));
-    const max = Math.max(...totals);
-    const step = max > 1000 ? 500 : max > 400 ? 200 : 100;
-    const top = Math.ceil(max / step) * step;
-
-    const W = Math.max(320, $("year-chart").clientWidth || 600), H = 230, ml = 36, mr = 6, mt = 8, mb = 22;
-    const iw = W - ml - mr, ih = H - mt - mb;
-    const bw = iw / all.length;
-    const yScale = (v) => mt + ih - (v / top) * ih;
-
-    let grid = "", bars = "", xl = "";
-    for (let v = 0; v <= top; v += step) {
-      grid += `<line x1="${ml}" x2="${W - mr}" y1="${yScale(v)}" y2="${yScale(v)}"/>`;
-      grid += `<text x="${ml - 6}" y="${yScale(v) + 3.5}" text-anchor="end">${fmtInt(v)}</text>`;
-    }
-    all.forEach(([year, c], i) => {
-      const x = ml + i * bw;
-      let acc = 0;
-      let rects = "";
-      for (const g of GROUPS) {
-        const v = c[g.key];
-        if (!v) continue;
-        const yTop = yScale(acc + v);
-        rects += `<rect class="bar" x="${x + bw * 0.12}" y="${yTop}" width="${bw * 0.76}" height="${yScale(acc) - yTop}" fill="${color(g)}"/>`;
-        acc += v;
-      }
-      bars += `<g class="col" data-i="${i}">${rects}<rect class="hit" x="${x}" y="${mt}" width="${bw}" height="${ih}"/></g>`;
-      if (year % 10 === 0 || year === y1) {
-        xl += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${year}</text>`;
-      }
-    });
-    $("year-chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img"
-      aria-label="Number of RNA-containing PDB entries released each year, by experimental method">
-      <g class="axis grid">${grid}</g>${bars}<g class="axis">${xl}</g></svg>`;
-    $("chart-legend").innerHTML = GROUPS.map((g) => `<span><i style="background:${color(g)}"></i>${g.key}</span>`).join("");
-
-    const svg = $("year-chart").querySelector("svg");
-    const tip = $("chart-tip");
-    svg.addEventListener("mousemove", (e) => {
-      const col = e.target.closest(".col");
-      if (!col) { tip.hidden = true; return; }
-      const [year, c] = all[Number(col.dataset.i)];
-      const total = GROUPS.reduce((s, g) => s + c[g.key], 0);
-      tip.innerHTML = `<b>${year}</b>: ${fmtInt(total)} entr${total === 1 ? "y" : "ies"}<br>` +
-        GROUPS.filter((g) => c[g.key]).map((g) => `${g.key} ${fmtInt(c[g.key])}`).join(" · ");
-      const box = $("year-chart").parentElement.getBoundingClientRect();
-      tip.hidden = false;
-      const x = Math.min(e.clientX - box.left + 12, box.width - tip.offsetWidth - 8);
-      tip.style.left = `${Math.max(8, x)}px`;
-      tip.style.top = `${e.clientY - box.top - tip.offsetHeight - 10}px`;
-    });
-    svg.addEventListener("mouseleave", () => { tip.hidden = true; });
-  }
-
-  // ---- New in the latest PDB release --------------------------------------------------
-
-  function renderLatest() {
-    const dates = state.rows.map((r) => r.release_date).filter(Boolean).sort();
-    if (!dates.length) return;
-    const newest = dates[dates.length - 1];
-    const cutoff = new Date(new Date(newest + "T00:00:00Z").getTime() - 6 * 86400000).toISOString().slice(0, 10);
-    const rows = state.rows.filter((r) => r.release_date && r.release_date >= cutoff)
-      .sort((a, b) => (b.n_rna_pairs || 0) - (a.n_rna_pairs || 0));
-    if (!rows.length) return;
-    $("latest-note").textContent = `${fmtInt(rows.length)} entr${rows.length === 1 ? "y" : "ies"} released on ${newest}`;
-    $("latest-row").innerHTML = rows.map((r) => `
-      <button type="button" class="latest-card" data-open="${esc(r.pdb_id)}">
-        <span class="top"><span class="id">${esc(r.pdb_id)}</span>${methodBadge(r)}</span>
-        <span class="t">${esc(r.title)}</span>
-        <span class="nums">
-          <span>Pair score <b>${r.pairs_score == null ? "n/a" : r.pairs_score.toFixed(2)}</b></span>
-          <span>Pairs <b>${fmtInt(r.n_rna_pairs)}</b></span>
-          <span>Priority <b>${fmtInt(r.n_priority_review)}</b></span>
-        </span>
-      </button>`).join("");
-    $("latest").hidden = false;
   }
 
   // ---- Table of all entries ----------------------------------------------------
@@ -667,7 +565,7 @@
       const cls = p.classification || {};
       const issues = (p.issue_details || []).map((d) =>
         `<span class="issue${d.tier === "Of Concern" ? " concern" : ""}" title="${esc(d.tier || "")}${d.severity != null ? " · severity " + d.severity : ""}">${esc(issueLabel(d.issue))}</span>`).join("");
-      return `<tr class="focusable" data-pair="${offset + i}" title="Show this pair in the 3D view">
+      return `<tr class="focusable" data-focus="pair:${offset + i}" title="Show this pair in the 3D view">
         <td>${tierPill(p.tier, cls.is_ambiguous)}</td>
         <td>${resHtml(p.res_id1)}</td>
         <td>${resHtml(p.res_id2)}</td>
@@ -681,7 +579,7 @@
   }
 
   function backboneRows(list) {
-    return list.map((b) => `<tr>
+    return list.map((b, i) => `<tr class="focusable" data-focus="suite:${i}" title="Show this suite in the 3D view">
         <td>${resHtml(b.res_id)}</td>
         <td><span class="tier tier-none">${esc(BB_TIERS[b.tier] || b.tier || "")}</span></td>
         <td class="num">${b.suiteness == null ? na() : Number(b.suiteness).toFixed(2)}</td>
@@ -692,7 +590,8 @@
   }
 
   function puckerRows(list, unclassified) {
-    return list.map((p) => `<tr>
+    const kind = unclassified ? "unclassified" : "pucker";
+    return list.map((p, i) => `<tr class="focusable" data-focus="${kind}:${i}" title="Show this ribose in the 3D view">
         <td>${resHtml(p.res_id)}</td>
         <td class="num">${p.delta == null ? na() : Number(p.delta).toFixed(1) + "°"}</td>
         <td class="num">${p.pperp == null ? na() : Number(p.pperp).toFixed(2) + " Å"}</td>
@@ -839,6 +738,11 @@
   }
 
   // ---- 3D view (Mol*, loaded on request) ----------------------------------------------
+  //
+  // The scene follows the RUBRIC PyMOL plug-in: the RNA as a gray cartoon, flagged pairs as
+  // thin sticks coloured by pair score (red below 80; yellow near 100 to orange near 80),
+  // pucker outliers as gray sticks with a cyan ribose ring. A clicked row is drawn thicker,
+  // labelled and zoomed to.
 
   let molstarReady = null;
   function loadMolstar() {
@@ -858,59 +762,148 @@
     return molstarReady;
   }
 
-  function residueSelector(resId) {
+  // Pair-score colour of the plug-in's score_to_rgb: red below 80, then from orange (80)
+  // to yellow (100) by the green channel.
+  function scoreColor(score) {
+    if (score < 80) return COLOR.priority;
+    const t = (100 - score) / 20;
+    const g = Math.round(255 * (0.867 + t * (0.45 - 0.867)));
+    return `#ff${g.toString(16).padStart(2, "0")}00`;
+  }
+
+  function residueRef(resId) {
     const r = splitRes(resId);
     const num = parseInt(r.num, 10);
-    return Number.isNaN(num) ? null : { auth_asym_id: r.chain, auth_seq_id: num };
+    return Number.isNaN(num) ? null : { chain: r.chain, num, label: `${r.chain}:${r.name}${r.num}` };
   }
-  const pairSelectors = (list) => list.flatMap((p) => [residueSelector(p.res_id1), residueSelector(p.res_id2)]).filter(Boolean);
+  const sel = (ref, atom) => (atom ? { auth_asym_id: ref.chain, auth_seq_id: ref.num, auth_atom_id: atom }
+                                    : { auth_asym_id: ref.chain, auth_seq_id: ref.num });
+  const RIBOSE_RING = ["C1'", "C2'", "C3'", "C4'", "O4'"];
+  const BACKBONE = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "C3'", "O3'"];
+  const SUITE_PREV = ["C5'", "C4'", "C3'", "O3'"];  // the suite starts at the previous sugar
 
-  function sceneMvsj(id, priority, secondary, focusPair) {
+  function sceneMvsj(id, flagged, puckers, focus, dark) {
     const MVS = window.molstar.PluginExtensions.mvs.MVSData;
     const b = MVS.createBuilder();
+    b.canvas({ background_color: dark ? "#161b24" : "white" });
     const s = b.download({ url: RCSB_BCIF(id) }).parse({ format: "bcif" }).modelStructure();
-    s.component({ selector: "polymer" }).representation({ type: "cartoon" }).color({ color: COLOR.cartoon });
-    const sec = pairSelectors(secondary);
-    const pri = pairSelectors(priority);
-    if (sec.length) s.component({ selector: sec }).representation({ type: "ball_and_stick" }).color({ color: COLOR.secondary });
-    if (pri.length) s.component({ selector: pri }).representation({ type: "ball_and_stick" }).color({ color: COLOR.priority });
-    if (focusPair) {
-      const f = pairSelectors([focusPair]);
-      if (f.length) s.component({ selector: f }).focus({});
+    const protein = s.component({ selector: "protein" }).representation({ type: "cartoon" });
+    protein.color({ color: COLOR.protein });
+    protein.opacity({ opacity: 0.45 });
+    s.component({ selector: "nucleic" }).representation({ type: "cartoon" }).color({ color: COLOR.cartoon });
+
+    // Flagged pairs: each residue takes the colour of its lowest-scoring flagged pair.
+    const lowest = new Map();
+    for (const p of flagged) {
+      for (const rid of [p.res_id1, p.res_id2]) {
+        const ref = residueRef(rid);
+        if (!ref) continue;
+        const key = `${ref.chain}|${ref.num}`;
+        if (!lowest.has(key) || p.score < lowest.get(key).score) lowest.set(key, { ref, score: p.score });
+      }
+    }
+    const byColor = new Map();
+    for (const { ref, score } of lowest.values()) {
+      const c = scoreColor(score);
+      if (!byColor.has(c)) byColor.set(c, []);
+      byColor.get(c).push(sel(ref));
+    }
+    for (const [color, selectors] of byColor) {
+      s.component({ selector: selectors })
+        .representation({ type: "ball_and_stick", size_factor: 0.32, ignore_hydrogens: true }).color({ color });
+    }
+
+    // Pucker outliers: gray sticks, cyan ribose ring.
+    const pk = puckers.map((p) => residueRef(p.res_id)).filter(Boolean);
+    if (pk.length) {
+      s.component({ selector: pk.map((r) => sel(r)) })
+        .representation({ type: "ball_and_stick", size_factor: 0.4, ignore_hydrogens: true }).color({ color: COLOR.puckerSticks });
+      s.component({ selector: pk.flatMap((r) => RIBOSE_RING.map((a) => sel(r, a))) })
+        .representation({ type: "ball_and_stick", size_factor: 0.42, ignore_hydrogens: true }).color({ color: COLOR.pucker });
+    }
+
+    // The clicked row: thicker sticks, a label, and the camera on it.
+    if (focus && focus.atoms.length) {
+      const f = s.component({ selector: focus.atoms });
+      f.representation({ type: "ball_and_stick", size_factor: 0.6, ignore_hydrogens: true }).color({ color: focus.color });
+      if (focus.ringAtoms && focus.ringAtoms.length) {
+        s.component({ selector: focus.ringAtoms })
+          .representation({ type: "ball_and_stick", size_factor: 0.62, ignore_hydrogens: true }).color({ color: COLOR.pucker });
+      }
+      f.focus({});
     }
     return MVS.toMVSJ(b.getState());
   }
 
-  function makeViewer(host, row, priority, secondary) {
+  // What to highlight for a clicked row.
+  function pairFocus(p) {
+    const a = residueRef(p.res_id1), c = residueRef(p.res_id2);
+    if (!a || !c) return null;
+    const cls = (p.classification || {}).lw_class || "";
+    return { atoms: [sel(a), sel(c)], color: p.score == null ? COLOR.focusGrey : scoreColor(p.score),
+             label: `${a.label} - ${c.label}  ${cls}${p.score == null ? "" : "  " + Number(p.score).toFixed(1)}` };
+  }
+  function suiteFocus(bb) {
+    const r = residueRef(bb.res_id);
+    if (!r) return null;
+    const prev = { chain: r.chain, num: r.num - 1 };
+    const atoms = [...SUITE_PREV.map((a) => sel(prev, a)), ...BACKBONE.map((a) => sel(r, a))];
+    const sui = bb.suiteness == null ? "" : `  suiteness ${Number(bb.suiteness).toFixed(2)}`;
+    const target = bb.target_conformer ? `  target ${bb.target_conformer}` : "";
+    return { atoms, color: COLOR.suite, label: `${r.label} suite${sui}${target}` };
+  }
+  function riboseFocus(p) {
+    const r = residueRef(p.res_id);
+    if (!r) return null;
+    const how = p.pucker_by_delta ? `${p.pucker_by_delta} by δ, ${p.pucker_by_pperp} by P-perp` : `${p.pucker_by_pperp} by P-perp`;
+    return { atoms: [sel(r)], ringAtoms: RIBOSE_RING.map((a) => sel(r, a)), color: COLOR.puckerSticks,
+             label: `${r.label}  ${how}` };
+  }
+
+  function makeViewer(host, row, flagged, puckers) {
     const id = row.pdb_id;
     const box = host.querySelector("#viewer-box");
     let viewer = null;
-    let busy = false;
+    let pending = null;
+    let running = false;
 
-    async function show(focusPair) {
-      if (busy) return;
-      busy = true;
-      try {
-        if (!viewer) {
-          box.innerHTML = `<div class="viewer-start"><div><span class="spinner"></span> Loading the 3D view</div></div><div class="viewer-mount" id="viewer-mount"></div>`;
-          const molstar = await loadMolstar();
-          viewer = await molstar.Viewer.create(box.querySelector("#viewer-mount"), {
-            layoutIsExpanded: false, layoutShowControls: false, layoutShowRemoteState: false,
-            layoutShowSequence: true, layoutShowLog: false, layoutShowLeftPanel: false,
-            viewportShowExpand: true, viewportShowSelectionMode: false, viewportShowAnimation: false,
-            collapseLeftPanel: true, pdbProvider: "rcsb", emdbProvider: "rcsb",
-          });
+    async function draw() {
+      running = true;
+      while (pending !== null) {
+        const focus = pending === "none" ? null : pending;
+        pending = null;
+        try {
+          if (!viewer) {
+            box.innerHTML = `<div class="viewer-start"><div><span class="spinner"></span> Loading the 3D view</div></div><div class="viewer-mount" id="viewer-mount"></div>`;
+            const molstar = await loadMolstar();
+            viewer = await molstar.Viewer.create(box.querySelector("#viewer-mount"), {
+              layoutIsExpanded: false, layoutShowControls: false, layoutShowRemoteState: false,
+              layoutShowSequence: true, layoutShowLog: false, layoutShowLeftPanel: false,
+              viewportShowExpand: true, viewportShowSelectionMode: false, viewportShowAnimation: false,
+              collapseLeftPanel: true, pdbProvider: "rcsb", emdbProvider: "rcsb",
+            });
+          }
+          await viewer.loadMvsData(sceneMvsj(id, flagged, puckers, focus, currentTheme() === "dark"),
+                                   "mvsj", { replaceExisting: true });
+          box.querySelector(".viewer-start")?.remove();
+          let cap = box.querySelector(".viewer-caption");
+          if (!cap) { cap = document.createElement("div"); cap.className = "viewer-caption"; box.appendChild(cap); }
+          cap.textContent = focus ? focus.label : "";
+          cap.hidden = !focus;
+        } catch (err) {
+          box.innerHTML = `<div class="viewer-start"><div><b>The 3D view could not be shown.</b><p>${esc(err.message)}</p></div></div>`;
+          viewer = null;
+          pending = null;
         }
-        await viewer.loadMvsData(sceneMvsj(id, priority, secondary, focusPair), "mvsj", { replaceExisting: true });
-        box.querySelector(".viewer-start")?.remove();
-      } catch (err) {
-        box.innerHTML = `<div class="viewer-start"><div><b>The 3D view could not be shown.</b><p>${esc(err.message)}</p></div></div>`;
-        viewer = null;
-      } finally {
-        busy = false;
       }
+      running = false;
     }
-    return { show, isOpen: () => viewer != null };
+    // Clicks while a scene is loading collapse into the latest one.
+    function show(focus) {
+      pending = focus || "none";
+      if (!running) draw();
+    }
+    return { show };
   }
 
   function renderEntry(host, row, data) {
@@ -922,31 +915,30 @@
       if (ta !== tb) return ta - tb;
       return (a.score ?? 101) - (b.score ?? 101);
     });
-    const priority = pairs.filter((p) => p.tier === "Priority review");
-    const secondary = pairs.filter((p) => p.tier === "Secondary review");
-    const flagged = priority.concat(secondary);
+    const flagged = pairs.filter((p) => p.tier === "Priority review" || p.tier === "Secondary review");
     const backbone = (rep.backbone_residues || []).slice().sort((a, b) =>
       (BB_ORDER[a.tier] ?? 3) - (BB_ORDER[b.tier] ?? 3) || (a.suiteness ?? 1) - (b.suiteness ?? 1));
     const outliers = rep.pucker_outliers || [];
     const unclassified = rep.pucker_unclassified || [];
 
-    const view = { tab: "pairs", pairMode: flagged.length ? "flagged" : "all", limit: ROW_LIMIT, focused: null };
+    const view = { tab: "pairs", pairMode: flagged.length ? "flagged" : "all", limit: ROW_LIMIT };
 
     host.innerHTML = renderEntryHead(row) + renderTiles(row, rep) + renderContext(row) + `
       <div class="panel viewer-panel">
         <div class="viewer-head">
           <h3>3D view</h3>
           <div class="viewer-legend">
-            <span class="tier tier-priority">Priority review</span>
-            <span class="tier tier-secondary">Secondary review</span>
-            <span class="muted small">Click a pair in the table below to zoom to it.</span>
+            <span class="swatch"><i style="background:${COLOR.priority}"></i>Priority review</span>
+            <span class="swatch"><i style="background:linear-gradient(90deg,#ff7300,#ffdd00)"></i>Secondary review</span>
+            <span class="swatch"><i style="background:${COLOR.pucker}"></i>Pucker outlier</span>
+            <span class="swatch"><i style="background:${COLOR.suite}"></i>Selected suite</span>
           </div>
         </div>
         <div class="viewer-box" id="viewer-box">
           <div class="viewer-start"><div>
             <button type="button" class="btn btn-primary" data-viewer-start>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z M12 12l8-4.5 M12 12v9 M12 12L4 7.5"/></svg>Show ${esc(id)} in 3D</button>
-            <p>Opens the Mol* viewer with the flagged pairs coloured. Large structures such as ribosomes can take a few seconds.</p>
+            <p>Colours as in the RUBRIC PyMOL plug-in. Click any pair, suite or ribose in the tables below to zoom to it. Large structures such as ribosomes can take a few seconds.</p>
           </div></div>
         </div>
       </div>
@@ -977,14 +969,14 @@
         </div>
       </div>`;
 
-    const viewer = makeViewer(host, row, priority, secondary);
+    const viewer = makeViewer(host, row, flagged, outliers);
     const body = host.querySelector("#tab-body");
-    let shownPairs = [];
+    let shown = { pair: [], suite: [], pucker: outliers, unclassified };
     const draw = () => {
       host.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === view.tab ? "true" : "false"));
       if (view.tab === "pairs") {
         const list = view.pairMode === "flagged" ? flagged : pairs;
-        shownPairs = list.slice(0, view.limit);
+        shown.pair = list.slice(0, view.limit);
         body.innerHTML = `<div class="tab-tools">
             <p class="tab-note">Pairs are sorted by tier, then by score. Issues in red are of concern; hover an issue for its severity. Click a pair to see it in 3D.</p>
             <div class="seg" role="group" aria-label="Pairs to show">
@@ -993,17 +985,17 @@
             </div>
           </div>` +
           table(`<th>Tier</th><th>Residue 1</th><th>Residue 2</th><th>Class</th><th>Bases</th><th class="num">Score</th><th class="num">H-bonds</th><th>Issues</th>`,
-            pairRows(shownPairs, 0), 8, view.pairMode === "flagged" ? "No flagged pairs in this entry." : "No base pairs in this entry.") +
-          (list.length > shownPairs.length ? `<div class="more"><button type="button" class="btn" data-more>Show all ${fmtInt(list.length)} rows</button></div>` : "");
+            pairRows(shown.pair, 0), 8, view.pairMode === "flagged" ? "No flagged pairs in this entry." : "No base pairs in this entry.") +
+          (list.length > shown.pair.length ? `<div class="more"><button type="button" class="btn" data-more>Show all ${fmtInt(list.length)} rows</button></div>` : "");
       } else if (view.tab === "backbone") {
-        const shown = backbone.slice(0, view.limit);
-        body.innerHTML = `<div class="tab-tools"><p class="tab-note">Suites that fit their conformer poorly or match none, with RUBRIC's suggested target torsions. Fixable suites come first.</p></div>` +
+        shown.suite = backbone.slice(0, view.limit);
+        body.innerHTML = `<div class="tab-tools"><p class="tab-note">Suites that fit their conformer poorly or match none, with RUBRIC's suggested target torsions. Fixable suites come first. Click a suite to see it in 3D.</p></div>` +
           table(`<th>Residue</th><th>Recommendation</th><th class="num">Suiteness</th><th>Target conformer</th><th>Torsions (current → target)</th>`,
-            backboneRows(shown), 5, "No backbone suites flagged in this entry.") +
-          (backbone.length > shown.length ? `<div class="more"><button type="button" class="btn" data-more>Show all ${fmtInt(backbone.length)} rows</button></div>` : "");
+            backboneRows(shown.suite), 5, "No backbone suites flagged in this entry.") +
+          (backbone.length > shown.suite.length ? `<div class="more"><button type="button" class="btn" data-more>Show all ${fmtInt(backbone.length)} rows</button></div>` : "");
       } else {
         body.innerHTML = `<h3 style="margin-top:0">Pucker outliers <span class="muted">(${fmtInt(outliers.length)})</span></h3>
-          <p class="tab-note" style="margin-bottom:10px">Riboses whose pucker from the δ torsion and from the P-perpendicular distance disagree.</p>` +
+          <p class="tab-note" style="margin-bottom:10px">Riboses whose pucker from the δ torsion and from the P-perpendicular distance disagree. Click a ribose to see it in 3D.</p>` +
           table(`<th>Residue</th><th class="num">δ</th><th class="num">P-perp</th><th>Pucker from δ</th><th>Pucker from P-perp</th>`,
             puckerRows(outliers, false), 5, "No pucker outliers in this entry.") +
           `<h3>Unclassified puckers <span class="muted">(${fmtInt(unclassified.length)})</span></h3>
@@ -1013,6 +1005,7 @@
       }
     };
 
+    const FOCUS = { pair: pairFocus, suite: suiteFocus, pucker: riboseFocus, unclassified: riboseFocus };
     host.onclick = (e) => {
       const tab = e.target.closest("[data-tab]");
       if (tab) { view.tab = tab.dataset.tab; view.limit = ROW_LIMIT; draw(); return; }
@@ -1020,11 +1013,13 @@
       if (mode) { view.pairMode = mode.dataset.mode; view.limit = ROW_LIMIT; draw(); return; }
       if (e.target.closest("[data-more]")) { view.limit = Infinity; draw(); return; }
       if (e.target.closest("[data-viewer-start]")) { viewer.show(null); return; }
-      const pairRow = e.target.closest("tr[data-pair]");
-      if (pairRow) {
+      const rowEl = e.target.closest("tr[data-focus]");
+      if (rowEl) {
+        const [kind, i] = rowEl.dataset.focus.split(":");
+        const focus = FOCUS[kind](shown[kind][Number(i)]);
         host.querySelectorAll("tr.is-focused").forEach((t) => t.classList.remove("is-focused"));
-        pairRow.classList.add("is-focused");
-        viewer.show(shownPairs[Number(pairRow.dataset.pair)]);
+        rowEl.classList.add("is-focused");
+        viewer.show(focus);
         host.querySelector(".viewer-panel").scrollIntoView({ behavior: "smooth", block: "start" });
         return;
       }
@@ -1093,11 +1088,6 @@
       $(scroll.dataset.scroll).scrollIntoView({ behavior: "smooth" });
     }
   });
-  let resizeTimer = null;
-  window.addEventListener("resize", () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { if (state.rows.length && !$("view-home").hidden) renderYearChart(); }, 150);
-  });
   window.addEventListener("hashchange", route);
   window.addEventListener("popstate", route);
 
@@ -1111,8 +1101,6 @@
   loadData()
     .then(() => {
       renderStats();
-      renderYearChart();
-      renderLatest();
       renderCite();
       applyFilters();
       route();
@@ -1120,7 +1108,6 @@
     .catch((err) => {
       $("entries-body").innerHTML = `<tr><td class="empty" colspan="${columns().length}">The table could not be loaded (${esc(err.message)}). Please reload the page.</td></tr>`;
       $("result-count").textContent = "";
-      $("year-chart").innerHTML = "";
       route();
     });
 })();
