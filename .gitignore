@@ -1,0 +1,15 @@
+# Local Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# Per-entry RUBRIC results; published as GitHub Release files, not kept in git
+/results/
+
+# Structures downloaded during a run (deleted after scoring)
+/work/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

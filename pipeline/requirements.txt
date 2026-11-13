@@ -1,0 +1,3 @@
+# The RUBRIC version that produces every result in data/. Change it only together
+# with a full rescore (python pipeline/update.py --full).
+rubric-rna @ git+https://github.com/YesselmanLab/RUBRIC.git@561b36d40e38683e65d4fd629b9337ed126741ba
