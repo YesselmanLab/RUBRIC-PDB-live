@@ -60,6 +60,7 @@ jobs:
             echo "No report changed"
           else
             git commit -q -m "Update reports ($(date -u +%F))"
+            git pull -q --rebase origin entries
             git push origin HEAD:entries
           fi
 
@@ -72,5 +73,7 @@ jobs:
             echo "No table changed"
           else
             git commit -q -m "Update results ($(date -u +%F))"
+            # Someone may have pushed to main while the job ran; put this commit on top.
+            git pull -q --rebase origin main
             git push origin HEAD:main
           fi

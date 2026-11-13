@@ -99,7 +99,7 @@
 
   const NUMERIC = ["resolution", "rna_chains", "rna_nucleotides", "n_pairs", "n_rna_pairs",
     "n_scored_pairs", "n_ambiguous_pairs", "pairs_score", "n_preferred", "n_secondary_review",
-    "n_priority_review", "backbone_suiteness", "n_pucker_outliers"];
+    "n_priority_review", "backbone_suiteness", "n_unassigned_suites", "n_pucker_outliers"];
 
   function parseCsv(text) {
     return Papa.parse(text, { header: true, skipEmptyLines: true }).data;
@@ -141,15 +141,16 @@
     { key: "pdb_id", label: "PDB ID", cls: "id" },
     { key: "title", label: "Title", cls: "title" },
     { key: "method_label", label: "Method" },
-    { key: "resolution", label: "Resolution (Å)", num: true },
+    { key: "resolution", label: "Res. (Å)", num: true, title: "Resolution in Å" },
     { key: "release_date", label: "Released" },
-    { key: "rna_nucleotides", label: "RNA nt", num: true },
-    { key: "n_rna_pairs", label: "RNA-RNA pairs", num: true },
+    { key: "rna_nucleotides", label: "RNA nt", num: true, title: "RNA nucleotides" },
+    { key: "n_rna_pairs", label: "Base pairs", num: true, title: "Base pairs between two RNA chains" },
     { key: "pairs_score", label: "Pair score", num: true },
-    { key: "n_priority_review", label: "Priority", num: true, title: "Pairs scoring below 80" },
-    { key: "n_secondary_review", label: "Secondary", num: true, title: "Pairs scoring 80 or more, below 100" },
+    { key: "n_priority_review", label: "Priority", num: true, title: "Priority-review pairs, scoring below 80" },
+    { key: "n_secondary_review", label: "Secondary", num: true, title: "Secondary-review pairs, scoring 80 or more, below 100" },
     { key: "backbone_suiteness", label: "Suiteness", num: true },
-    { key: "n_pucker_outliers", label: "Pucker outliers", num: true, title: "Riboses whose pucker from δ and from P-perp disagree" },
+    { key: "n_unassigned_suites", label: "Unassigned", num: true, title: "Backbone suites that fit none of the conformers" },
+    { key: "n_pucker_outliers", label: "Pucker", num: true, title: "Pucker outliers: riboses whose pucker from δ and from P-perp disagree" },
   ];
 
   function renderHead() {
@@ -175,7 +176,7 @@
         return `<td class="num">${v == null ? na() : v.toFixed(2)}</td>`;
       case "pairs_score":
         if (v == null) return `<td class="num" title="No scored pairs">${na("none")}</td>`;
-        return `<td class="num"><span class="score">${v.toFixed(2)}<span class="score-bar"><i style="width:${Math.max(0, Math.min(100, v))}%"></i></span></span></td>`;
+        return `<td class="num">${v.toFixed(2)}</td>`;
       case "n_priority_review":
         return `<td class="num"><span class="count-pill ${v ? "priority" : "zero"}">${fmtInt(v)}</span></td>`;
       case "n_secondary_review":
@@ -569,7 +570,11 @@
       </div>`;
   }
 
-  function renderTiles(r) {
+  function renderTiles(r, rep) {
+    // Unassigned suites ("!!" in suitename) are the flagged suites with suiteness 0.
+    const unassigned = rep ? (rep.backbone_residues || []).filter((b) => b.suiteness === 0).length : null;
+    const suiteNote = unassigned == null ? "backbone, 0 to 1"
+      : `${fmtInt(unassigned)} suite${unassigned === 1 ? "" : "s"} unassigned`;
     const scored = r.n_scored_pairs || 0;
     const pct = (n) => (scored ? (100 * (n || 0) / scored) : 0);
     const bar = scored ? `<div class="tierbar" title="Priority, secondary and preferred pairs">
@@ -579,7 +584,7 @@
       <div class="tile"><div class="k">Pairs scored</div><div class="v">${fmtInt(scored)}</div>${bar}<div class="s">of ${fmtInt(r.n_pairs)} found, ${fmtInt(r.n_rna_pairs)} RNA-RNA</div></div>
       <div class="tile priority"><div class="k">Priority review</div><div class="v">${fmtInt(r.n_priority_review)}</div><div class="s">score below 80</div></div>
       <div class="tile secondary"><div class="k">Secondary review</div><div class="v">${fmtInt(r.n_secondary_review)}</div><div class="s">score 80 to below 100</div></div>
-      <div class="tile"><div class="k">Suiteness</div><div class="v">${r.backbone_suiteness == null ? "n/a" : r.backbone_suiteness.toFixed(3)}</div><div class="s">backbone, 0 to 1</div></div>
+      <div class="tile"><div class="k">Suiteness</div><div class="v">${r.backbone_suiteness == null ? "n/a" : r.backbone_suiteness.toFixed(3)}</div><div class="s" title="Suites that fit none of the 54 conformers">${suiteNote}</div></div>
       <div class="tile"><div class="k">Pucker outliers</div><div class="v">${fmtInt(r.n_pucker_outliers)}</div><div class="s">riboses flagged</div></div>
     </div>`;
   }
@@ -601,7 +606,7 @@
 
     const view = { tab: "pairs", pairMode: flagged.length ? "flagged" : "all", limit: ROW_LIMIT };
 
-    host.innerHTML = renderEntryHead(row) + renderTiles(row) + `
+    host.innerHTML = renderEntryHead(row) + renderTiles(row, rep) + `
       <div class="panel">
         <div class="tabs" role="tablist">
           <button class="tab" role="tab" data-tab="pairs">Base pairs<span class="n">${fmtInt(flagged.length)} flagged</span></button>

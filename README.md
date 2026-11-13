@@ -40,6 +40,7 @@ The full report of a single entry can also be produced locally with
 | `n_secondary_review` | Pairs scoring 80 or more but below 100 |
 | `n_priority_review` | Pairs scoring below 80 |
 | `backbone_suiteness` | Suiteness of the RNA backbone (0 to 1) |
+| `n_unassigned_suites` | Backbone suites that fit none of the conformers |
 | `n_pucker_outliers` | Riboses whose pucker from δ and from the P-perpendicular distance disagree |
 | `rubric_version`, `scored_on` | RUBRIC version and date of scoring |
 

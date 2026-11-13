@@ -44,7 +44,8 @@ SUMMARY_COLUMNS = [
     "pdb_id", "title", "method", "resolution", "release_date", "revision_date",
     "rna_chains", "rna_nucleotides", "n_pairs", "n_rna_pairs", "n_scored_pairs", "n_ambiguous_pairs",
     "pairs_score", "n_preferred", "n_secondary_review", "n_priority_review",
-    "backbone_suiteness", "n_pucker_outliers", "rubric_version", "scored_on",
+    "backbone_suiteness", "n_unassigned_suites", "n_pucker_outliers", "rubric_version",
+    "scored_on",
 ]
 FAILURE_COLUMNS = ["pdb_id", "revision_date", "error", "rubric_version", "attempted_on"]
 UPDATE_COLUMNS = ["date", "rubric_version", "entries", "scored", "failed",
@@ -205,8 +206,46 @@ def report_fields(report, rna_chains):
         "n_secondary_review": tiers.get("Secondary review", 0),
         "n_priority_review": tiers.get("Priority review", 0),
         "backbone_suiteness": report.get("backbone_suiteness"),
+        # Suites that fit none of the conformers ("!!") are the flagged suites with suiteness 0.
+        "n_unassigned_suites": sum(1 for b in report.get("backbone_residues") or []
+                                   if b.get("suiteness") == 0),
         "n_pucker_outliers": len(report.get("pucker_outliers") or []),
     }
+
+
+def canonical(value):
+    """A report with every list in a fixed order and each clash's two atoms sorted.
+
+    RUBRIC writes some lists (backbone suites, clashes, unclassified puckers) in an
+    order that depends on the C++ standard library, so the same results can be
+    written in a different order on Linux and macOS. Two reports with the same
+    canonical form hold the same results.
+    """
+    if isinstance(value, dict):
+        if {"atom1", "atom2", "res_id1", "res_id2"} <= value.keys():
+            (r1, a1), (r2, a2) = sorted([(value["res_id1"], value["atom1"]),
+                                         (value["res_id2"], value["atom2"])])
+            value = {**value, "res_id1": r1, "atom1": a1, "res_id2": r2, "atom2": a2}
+        return {k: canonical(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return sorted((canonical(v) for v in value), key=lambda v: json.dumps(v, sort_keys=True))
+    return value
+
+
+def gzip_bytes(raw):
+    """gzip with a fixed header, so the same report gives the same file everywhere."""
+    data = bytearray(gzip.compress(raw, compresslevel=9, mtime=0))
+    data[9] = 255  # header OS field; Python versions disagree on it
+    return bytes(data)
+
+
+def same_report(path, report):
+    """True when the stored report at path holds the same results as report."""
+    try:
+        old = json.loads(gzip.decompress(path.read_bytes()))
+    except (OSError, ValueError, EOFError):
+        return False
+    return canonical(old) == canonical(report)
 
 
 def score_entry(pdb_id, rna_chains, engine, work_dir, results_dir, timeout):
@@ -237,7 +276,8 @@ def score_entry(pdb_id, rna_chains, engine, work_dir, results_dir, timeout):
         report = json.loads(raw)
         target = result_path(results_dir, pdb_id)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(gzip.compress(raw, mtime=0))
+        if not same_report(target, report):
+            target.write_bytes(gzip_bytes(raw))
         return report_fields(report, rna_chains), None
     finally:
         structure.unlink(missing_ok=True)
