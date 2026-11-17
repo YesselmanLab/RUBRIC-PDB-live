@@ -432,3 +432,21 @@ td.empty { text-align: center; color: var(--muted); padding: 40px 12px; white-sp
 .ctx-bar i { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
 .ctx-scale { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-top: 4px; }
 @media (max-width: 760px) { .context { grid-template-columns: 1fr; } }
+
+/* ---- Hero drawing: a tRNA cloverleaf ------------------------------------ */
+:root { --hero-pair: #b9c2d0; }
+:root[data-theme="dark"] { --hero-pair: #4a5568; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --hero-pair: #4a5568; } }
+.hero-wrap { position: relative; }
+.hero-art {
+  position: absolute; right: 56px; top: -30px; width: 300px; height: auto; pointer-events: none;
+}
+.hero-art .bb { fill: none; stroke: var(--accent); stroke-width: 1.6; opacity: .45; stroke-linejoin: round; }
+.hero-art line { stroke-width: 2.4; stroke-linecap: round; }
+.hero-art line.hot { stroke-width: 3; }
+.hero-art circle { fill: var(--surface); stroke: var(--accent); stroke-width: 1.6; }
+@media (max-width: 1080px) { .hero-art { display: none; } }
+
+.footer-links { display: flex; gap: 6px 18px; flex-wrap: wrap; }
+.footer-links a { color: var(--muted); }
+.footer-links a:hover { color: var(--accent); }
