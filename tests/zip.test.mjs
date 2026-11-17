@@ -1,5 +1,5 @@
 // Checks that assets/zip.js writes archives that unzip to the original JSON.
-// Run with: node --test tests/
+// Run with: node --test tests/*.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";

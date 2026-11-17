@@ -67,7 +67,7 @@ write the ZIP straight to disk; other browsers keep it in memory until it is sav
 Tests for `zip.js` run on every push that changes `assets/` or `tests/`:
 
 ```bash
-node --test tests/
+node --test tests/*.test.mjs
 ```
 
 ## Updates

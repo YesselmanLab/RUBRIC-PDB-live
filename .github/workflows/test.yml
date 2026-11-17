@@ -21,4 +21,4 @@ jobs:
       - name: Check syntax
         run: node --check assets/app.js && node --check assets/zip.js
       - name: Run tests
-        run: node --test tests/
+        run: node --test tests/*.test.mjs
