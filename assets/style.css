@@ -485,3 +485,5 @@ tr.picked, tr.picked:hover { background: color-mix(in srgb, var(--accent) 16%, t
 .chain-only { font-size: .8rem; padding: 0; visibility: hidden; }
 .chain-row:hover .chain-only, .chain-only:focus { visibility: visible; }
 @media (hover: none) { .chain-only { visibility: visible; } }
+.chain-note { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--text-2); font-size: .88rem; }
+.chain-note .link-btn { padding: 0 0 0 4px; font-size: .88rem; }

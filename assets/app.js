@@ -848,6 +848,7 @@
   // ---- 3D viewer (Mol*, loaded on the first entry page that needs it) ---------------
 
   let viewer3d = null;
+  let redrawTables = null;
   let molstarLoading = null;
   const VIEW_COLORS = () => ({ red: Rubric3D.colors.RED, orange: Rubric3D.colors.ORANGE, grey: "#4c72b0" });
   const surfaceColor = () => getComputedStyle(document.documentElement).getPropertyValue("--surface").trim() || "#ffffff";
@@ -951,31 +952,32 @@
     if (!viewer3d) return;
     viewer3d.setHiddenChains(ids);
     syncChainBoxes();
+    if (redrawTables) redrawTables();
   }
 
   function renderEntry(host, row, data) {
     const rep = data.report;
     const id = row.pdb_id;
-    const pairs = (rep.pairs || []).slice().sort((a, b) => {
+    const allPairs = (rep.pairs || []).slice().sort((a, b) => {
       const ta = TIER_ORDER[a.tier] ?? 3;
       const tb = TIER_ORDER[b.tier] ?? 3;
       if (ta !== tb) return ta - tb;
       return (a.score ?? 101) - (b.score ?? 101);
     });
-    const flagged = pairs.filter((p) => p.tier === "Priority review" || p.tier === "Secondary review");
-    const backbone = (rep.backbone_residues || []).slice().sort((a, b) =>
+    const isFlagged = (p) => p.tier === "Priority review" || p.tier === "Secondary review";
+    const allBackbone = (rep.backbone_residues || []).slice().sort((a, b) =>
       (BB_ORDER[a.tier] ?? 3) - (BB_ORDER[b.tier] ?? 3) || (a.suiteness ?? 1) - (b.suiteness ?? 1));
-    const outliers = rep.pucker_outliers || [];
-    const unclassified = rep.pucker_unclassified || [];
+    const allOutliers = rep.pucker_outliers || [];
+    const allUnclassified = rep.pucker_unclassified || [];
 
-    const view = { tab: "pairs", pairMode: flagged.length ? "flagged" : "all", limit: ROW_LIMIT };
+    const view = { tab: "pairs", pairMode: allPairs.some(isFlagged) ? "flagged" : "all", limit: ROW_LIMIT };
 
     host.innerHTML = renderEntryHead(row) + renderTiles(row, rep) + renderContext(row) + viewerPanel(rep) + `
       <div class="panel">
         <div class="tabs" role="tablist">
-          <button class="tab" role="tab" data-tab="pairs">Base pairs<span class="n">${fmtInt(flagged.length)} flagged</span></button>
-          <button class="tab" role="tab" data-tab="backbone">Backbone suites<span class="n">${fmtInt(backbone.length)}</span></button>
-          <button class="tab" role="tab" data-tab="riboses">Riboses<span class="n">${fmtInt(outliers.length + unclassified.length)}</span></button>
+          <button class="tab" role="tab" data-tab="pairs">Base pairs<span class="n" data-count="pairs"></span></button>
+          <button class="tab" role="tab" data-tab="backbone">Backbone suites<span class="n" data-count="backbone"></span></button>
+          <button class="tab" role="tab" data-tab="riboses">Riboses<span class="n" data-count="riboses"></span></button>
         </div>
         <div class="tab-body" id="tab-body"></div>
       </div>
@@ -999,13 +1001,26 @@
       </div>`;
 
     const body = host.querySelector("#tab-body");
-    let shown = { pair: [], suite: [], pucker: outliers, unclassified };
+    let shown = { pair: [], suite: [] };
     const draw = () => {
+      // Rows on chains hidden in the 3D view are left out, as in the viewer.
+      const hidden = viewer3d ? viewer3d.hiddenChains() : new Set();
+      const visible = (resId) => !hidden.has(String(resId).slice(0, String(resId).indexOf("-")));
+      const pairs = allPairs.filter((p) => visible(p.res_id1) && visible(p.res_id2));
+      const flagged = pairs.filter(isFlagged);
+      const backbone = allBackbone.filter((b) => visible(b.res_id));
+      const outliers = allOutliers.filter((p) => visible(p.res_id));
+      const unclassified = allUnclassified.filter((p) => visible(p.res_id));
+      host.querySelector('[data-count="pairs"]').textContent = `${fmtInt(flagged.length)} flagged`;
+      host.querySelector('[data-count="backbone"]').textContent = fmtInt(backbone.length);
+      host.querySelector('[data-count="riboses"]').textContent = fmtInt(outliers.length + unclassified.length);
+      const note = hidden.size ? `<p class="chain-note">Chain${hidden.size === 1 ? "" : "s"} hidden in the 3D view ${hidden.size === 1 ? "is" : "are"} left out:
+          <b>${[...hidden].map(esc).join(", ")}</b>. <button type="button" class="link-btn" data-chains="all">Show all chains</button></p>` : "";
       host.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === view.tab ? "true" : "false"));
       if (view.tab === "pairs") {
         const list = view.pairMode === "flagged" ? flagged : pairs;
         shown.pair = list.slice(0, view.limit);
-        body.innerHTML = `<div class="tab-tools">
+        body.innerHTML = note + `<div class="tab-tools">
             <p class="tab-note">Pairs are sorted by tier, then by score. Issues in red are of concern; hover an issue for its severity.</p>
             <div class="seg" role="group" aria-label="Pairs to show">
               <button type="button" data-mode="flagged" aria-pressed="${view.pairMode === "flagged"}">Flagged (${fmtInt(flagged.length)})</button>
@@ -1013,23 +1028,23 @@
             </div>
           </div>` +
           table(`<th>Tier</th><th>Residue 1</th><th>Residue 2</th><th>Class</th><th>Bases</th><th class="num">Score</th><th class="num">H-bonds</th><th>Issues</th>`,
-            pairRows(shown.pair, 0), 8, view.pairMode === "flagged" ? "No flagged pairs in this entry." : "No base pairs in this entry.") +
+            pairRows(shown.pair, 0), 8, view.pairMode === "flagged" ? `No flagged pairs ${hidden.size ? "on the visible chains" : "in this entry"}.` : `No base pairs ${hidden.size ? "on the visible chains" : "in this entry"}.`) +
           (list.length > shown.pair.length ? `<div class="more"><button type="button" class="btn" data-more>Show all ${fmtInt(list.length)} rows</button></div>` : "");
       } else if (view.tab === "backbone") {
         shown.suite = backbone.slice(0, view.limit);
-        body.innerHTML = `<div class="tab-tools"><p class="tab-note">Suites that fit their conformer poorly or match none, with RUBRIC's suggested target torsions. Fixable suites come first.</p></div>` +
+        body.innerHTML = note + `<div class="tab-tools"><p class="tab-note">Suites that fit their conformer poorly or match none, with RUBRIC's suggested target torsions. Fixable suites come first.</p></div>` +
           table(`<th>Residue</th><th>Recommendation</th><th class="num">RUBRIC suiteness</th><th>Target conformer</th><th>Torsions (current → target)</th>`,
-            backboneRows(shown.suite), 5, "No backbone suites flagged in this entry.") +
+            backboneRows(shown.suite), 5, `No backbone suites flagged ${hidden.size ? "on the visible chains" : "in this entry"}.`) +
           (backbone.length > shown.suite.length ? `<div class="more"><button type="button" class="btn" data-more>Show all ${fmtInt(backbone.length)} rows</button></div>` : "");
       } else {
-        body.innerHTML = `<h3 style="margin-top:0">Pucker outliers <span class="muted">(${fmtInt(outliers.length)})</span></h3>
+        body.innerHTML = note + `<h3 style="margin-top:0">Pucker outliers <span class="muted">(${fmtInt(outliers.length)})</span></h3>
           <p class="tab-note" style="margin-bottom:10px">Riboses whose pucker from the δ torsion and from the P-perpendicular distance disagree.</p>` +
           table(`<th>Residue</th><th class="num">δ</th><th class="num">P-perp</th><th>Pucker from δ</th><th>Pucker from P-perp</th>`,
-            puckerRows(outliers, false), 5, "No pucker outliers in this entry.") +
+            puckerRows(outliers, false), 5, `No pucker outliers ${hidden.size ? "on the visible chains" : "in this entry"}.`) +
           `<h3>Unclassified puckers <span class="muted">(${fmtInt(unclassified.length)})</span></h3>
           <p class="tab-note" style="margin-bottom:10px">Riboses for which the δ torsion gives no pucker assignment; the pucker from the P-perpendicular distance is shown.</p>` +
           table(`<th>Residue</th><th class="num">δ</th><th class="num">P-perp</th><th>Pucker from P-perp</th>`,
-            puckerRows(unclassified, true), 4, "No unclassified puckers in this entry.");
+            puckerRows(unclassified, true), 4, `No unclassified puckers ${hidden.size ? "on the visible chains" : "in this entry"}.`);
       }
     };
 
@@ -1082,6 +1097,7 @@
       if (e.target.closest("[data-copy-link]")) { copyText(location.href, "Link copied"); return; }
       if (e.target.closest('[data-dl="json"]')) downloadBlob(data.text, `${id}.json`, "application/json");
     };
+    redrawTables = draw;
     draw();
     mountViewer(id, rep);
   }
