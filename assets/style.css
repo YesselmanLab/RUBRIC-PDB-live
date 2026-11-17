@@ -433,9 +433,9 @@ td.empty { text-align: center; color: var(--muted); padding: 40px 12px; white-sp
 .ctx-scale { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-top: 4px; }
 @media (max-width: 760px) { .context { grid-template-columns: 1fr; } }
 
-/* ---- Hero structure: 1EHZ rendered in PyMOL -------------------------- */
-.hero-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: center; }
-.hero-figure { margin: 0; width: 340px; text-align: center; }
+/* ---- Hero structure: 1GID rendered in PyMOL -------------------------- */
+.hero-wrap { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 1fr); gap: 40px; align-items: center; }
+.hero-figure { margin: 0; width: min(100%, 360px); justify-self: start; text-align: center; }
 .hero-figure img { display: block; width: 100%; height: auto; transition: transform .25s; }
 .hero-figure a:hover img { transform: scale(1.02); }
 .hero-figure figcaption { margin-top: 8px; font-size: .82rem; color: var(--muted); line-height: 1.45; }
