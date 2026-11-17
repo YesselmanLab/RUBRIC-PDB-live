@@ -64,6 +64,9 @@ and a ZIP entry hold the same deflate stream, so each report is copied into the 
 without decompressing it, and unzipping gives plain `.json` files. Chrome and Edge
 write the ZIP straight to disk; other browsers keep it in memory until it is saved.
 
+`index.html` loads the stylesheet and scripts with a `?v=` date; change it whenever
+`assets/` changes, so browsers do not combine a new page with a cached old stylesheet.
+
 Tests for `zip.js` run on every push that changes `assets/` or `tests/`:
 
 ```bash
