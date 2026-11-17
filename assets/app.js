@@ -59,10 +59,7 @@
     if (first.includes("NMR")) return "NMR";
     return "Other";
   }
-  const METHOD_CLASS = { "X-ray": "method-xray", "Cryo-EM": "method-em", "NMR": "method-nmr", "Other": "method-other" };
-  const methodBadge = (r) => (r.method
-    ? `<span class="method ${METHOD_CLASS[r.method_group]}" title="${esc(r.method)}">${esc(r.method_label)}</span>`
-    : na());
+  const methodBadge = (r) => (r.method ? `<span title="${esc(r.method)}">${esc(r.method_label)}</span>` : na());
 
   function toast(message) {
     const t = $("toast");
@@ -131,14 +128,23 @@
     state.rows = rows;
     state.byId = new Map(rows.map((r) => [r.pdb_id, r]));
     const updates = updatesText ? parseCsv(updatesText) : [];
+    state.updates = updates;
     state.lastUpdate = updates.length ? updates[updates.length - 1] : null;
   }
 
   function renderStats() {
     const last = state.lastUpdate;
-    $("stat-entries").textContent = fmtInt(state.rows.length);
-    $("stat-updated").textContent = last ? last.date : "n/a";
-    $("stat-version").textContent = last ? last.rubric_version : "n/a";
+    const version = last ? last.rubric_version : null;
+    const pypi = version ? `<a href="https://pypi.org/project/rubric-rna/${encodeURIComponent(version)}/">RUBRIC ${esc(version)}</a>` : "RUBRIC";
+    const sep = `<span class="sep">|</span>`;
+    $("status").innerHTML = [`${fmtInt(state.rows.length)} entries`,
+      last ? `last update ${esc(last.date)}` : null, version ? pypi : null].filter(Boolean).join(sep);
+    $("footer-version").innerHTML = pypi;
+    const recent = (state.updates || []).slice(-6).reverse();
+    $("updates-body").innerHTML = recent.length ? recent.map((u) => `<tr><td>${esc(u.date)}</td><td>${esc(u.rubric_version)}</td>
+        <td class="num">${fmtInt(+u.entries)}</td><td class="num">${fmtInt(+u.added)}</td>
+        <td class="num">${fmtInt(+u.revised)}</td><td class="num">${fmtInt(+u.rescored)}</td><td class="num">${fmtInt(+u.removed)}</td></tr>`).join("")
+      : `<tr><td colspan="7" class="muted">No updates recorded</td></tr>`;
   }
 
   // ---- Table of all entries ----------------------------------------------------
@@ -193,17 +199,17 @@
       case "pdb_id":
         return `<td class="id">${esc(v)}</td>`;
       case "title":
-        return `<td class="title"><span class="clamp" title="${esc(v)}">${esc(v) || na("untitled")}</span></td>`;
+        return `<td class="title" title="${esc(v)}">${esc(v) || na("untitled")}</td>`;
       case "method_label":
         return `<td>${methodBadge(r)}</td>`;
       case "resolution":
         return `<td class="num">${v == null ? na() : v.toFixed(2)}</td>`;
       case "pairs_score":
-        return v == null ? `<td class="num" title="No scored pairs">${na("none")}</td>` : `<td class="num">${v.toFixed(2)}</td>`;
+        return v == null ? `<td class="num" title="No scored pairs">${na()}</td>` : `<td class="num">${v.toFixed(2)}</td>`;
       case "n_priority_review":
-        return `<td class="num"><span class="count-pill ${v ? "priority" : "zero"}">${fmtInt(v)}</span></td>`;
+        return `<td class="num ${v ? "n-priority" : "n-zero"}">${fmtInt(v)}</td>`;
       case "n_secondary_review":
-        return `<td class="num"><span class="count-pill ${v ? "secondary" : "zero"}">${fmtInt(v)}</span></td>`;
+        return `<td class="num ${v ? "n-secondary" : "n-zero"}">${fmtInt(v)}</td>`;
       case "backbone_suiteness":
         return `<td class="num">${v == null ? na() : v.toFixed(2)}</td>`;
       default:
@@ -675,7 +681,7 @@
     return pairs.map((p, i) => {
       const cls = p.classification || {};
       const issues = (p.issue_details || []).map((d) =>
-        `<span class="issue${d.tier === "Of Concern" ? " concern" : ""}" title="${esc(d.tier || "")}${d.severity != null ? " · severity " + d.severity : ""}">${esc(issueLabel(d.issue))}</span>`).join("");
+        `<span class="issue${d.tier === "Of Concern" ? " concern" : ""}" title="${esc(d.tier || "")}${d.severity != null ? ", severity " + d.severity : ""}">${esc(issueLabel(d.issue))}</span>`).join(", ");
       return `<tr>
         <td>${tierPill(p.tier, cls.is_ambiguous)}</td>
         <td>${resHtml(p.res_id1)}</td>
@@ -684,7 +690,7 @@
         <td>${esc(p.bp_type || "")}</td>
         <td class="num">${p.score == null ? na() : Number(p.score).toFixed(1)}</td>
         <td class="num">${p.num_hbonds ?? ""}</td>
-        <td><div class="issues">${issues || na("none")}</div></td>
+        <td class="issues">${issues || na("none")}</td>
       </tr>`;
     }).join("");
   }
@@ -692,7 +698,7 @@
   function backboneRows(list) {
     return list.map((b, i) => `<tr>
         <td>${resHtml(b.res_id)}</td>
-        <td><span class="tier tier-none">${esc(BB_TIERS[b.tier] || b.tier || "")}</span></td>
+        <td>${esc(BB_TIERS[b.tier] || b.tier || "")}</td>
         <td class="num">${b.suiteness == null ? na() : Number(b.suiteness).toFixed(2)}</td>
         <td class="mono">${esc(b.target_conformer || "")}</td>
         <td>${(b.deviations || []).map((d) =>
@@ -715,18 +721,12 @@
       rows || `<tr><td class="empty" colspan="${colspan}">${emptyText}</td></tr>`}</tbody></table></div>`;
   }
 
-  const BACK = `<a class="back" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>All entries</a>`;
+  const BACK = `<a class="back" href="#">&larr; All entries</a>`;
 
   function entrySkeleton(id) {
     return `${BACK}
-      <div class="entry-head"><div class="entry-head-main">
-        <div class="thumb skeleton"></div>
-        <div style="flex:1"><div class="entry-id">${esc(id)}</div>
-        <div class="skeleton" style="height:20px;width:70%;margin:10px 0"></div>
-        <div class="skeleton" style="height:14px;width:45%"></div></div>
-      </div></div>
-      <div class="tiles">${'<div class="tile"><div class="skeleton" style="height:46px"></div></div>'.repeat(6)}</div>
-      <div class="panel"><div class="tab-body"><span class="spinner"></span> Loading the RUBRIC report</div></div>`;
+      <div class="entry-head"><div class="entry-head-main"><div class="entry-id">${esc(id)}</div></div></div>
+      <p class="muted" style="margin-top:14px">Loading the RUBRIC report</p>`;
   }
 
   async function showEntry(id) {
@@ -748,7 +748,7 @@
       data = await fetchReport(id);
     } catch (err) {
       if (location.hash.slice(1) !== encodeURIComponent(id)) return;
-      host.innerHTML = renderEntryHead(row) + renderTiles(row, null) + renderContext(row) +
+      host.innerHTML = renderEntryHead(row) + renderSummary(row, null) +
         `<div class="notice"><h2>The full report could not be loaded</h2>
         <p>${esc(err.message)}. Check the connection and reload the page, or download the report directly:</p>
         <p><a href="${REPORT_URL}${encodeURIComponent(id)}.json.gz">${esc(id)}.json.gz</a></p></div>`;
@@ -762,10 +762,10 @@
     const rcsb = RCSB_URL + encodeURIComponent(r.pdb_id);
     return `${BACK}
       <div class="entry-head">
-        <div class="entry-head-main">
+        <div class="entry-head-row">
           <img class="thumb" src="${RCSB_IMAGE(r.pdb_id)}" alt="Structure of ${esc(r.pdb_id)} (image from RCSB PDB)" loading="lazy"
                onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${RCSB_IMAGE_MODEL(r.pdb_id)}'}else{this.style.display='none'}">
-          <div style="flex:1;min-width:0">
+          <div class="entry-head-main">
             <div class="entry-id">${esc(r.pdb_id)}</div>
             <div class="entry-title">${esc(r.title) || na("untitled")}</div>
             <div class="meta">
@@ -775,33 +775,35 @@
               <span><b>Revised</b>${esc(r.revision_date)}</span>
               <span><b>RNA</b>${fmtInt(r.rna_chains)} chain${r.rna_chains === 1 ? "" : "s"}, ${fmtInt(r.rna_nucleotides)} nt</span>
             </div>
+            <div class="entry-links">
+              <a href="${rcsb}">${esc(r.pdb_id)} at RCSB PDB</a>
+              <button type="button" class="link-btn" data-copy-link>Copy link to this page</button>
+            </div>
           </div>
-        </div>
-        <div class="entry-links">
-          <a class="btn" href="${rcsb}" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M18 14v5H5V6h5"/></svg>View at RCSB</a>
-          <button type="button" class="btn" data-copy-link>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Copy link to this entry</button>
-        </div>
       </div>`;
   }
 
-  function renderTiles(r, rep) {
+  function renderSummary(r, rep) {
     const unassigned = r.n_unassigned_suites != null ? r.n_unassigned_suites
       : rep ? (rep.backbone_residues || []).filter((b) => b.suiteness === 0).length : null;
-    const suiteNote = unassigned == null ? "backbone, 0 to 1"
-      : `${fmtInt(unassigned)} suite${unassigned === 1 ? "" : "s"} unassigned`;
     const scored = r.n_scored_pairs || 0;
     const pct = (n) => (scored ? (100 * (n || 0) / scored) : 0);
-    const bar = scored ? `<div class="tierbar" title="Priority, secondary and preferred pairs">
-        <i class="p" style="width:${pct(r.n_priority_review)}%"></i><i class="s" style="width:${pct(r.n_secondary_review)}%"></i><i class="f" style="width:${pct(r.n_preferred)}%"></i></div>` : "";
-    return `<div class="tiles">
-      <div class="tile"><div class="k">Pair score</div><div class="v">${r.pairs_score == null ? "n/a" : r.pairs_score.toFixed(2)}</div><div class="s">${r.pairs_score == null ? "no scored pairs" : "out of 100"}</div></div>
-      <div class="tile"><div class="k">Pairs scored</div><div class="v">${fmtInt(scored)}</div>${bar}<div class="s">of ${fmtInt(r.n_pairs)} found, ${fmtInt(r.n_rna_pairs)} RNA-RNA</div></div>
-      <div class="tile priority"><div class="k">Priority review</div><div class="v">${fmtInt(r.n_priority_review)}</div><div class="s">score below 80</div></div>
-      <div class="tile secondary"><div class="k">Secondary review</div><div class="v">${fmtInt(r.n_secondary_review)}</div><div class="s">score 80 to below 100</div></div>
-      <div class="tile"><div class="k">RUBRIC suiteness</div><div class="v">${r.backbone_suiteness == null ? "n/a" : r.backbone_suiteness.toFixed(2)}</div><div class="s" title="Suites that fit none of the 54 conformers">${suiteNote}</div></div>
-      <div class="tile"><div class="k">Pucker outliers</div><div class="v">${fmtInt(r.n_pucker_outliers)}</div><div class="s">riboses flagged</div></div>
+    const bar = scored ? `<span class="tierbar" title="Priority, secondary and preferred pairs">
+        <i class="p" style="width:${pct(r.n_priority_review)}%"></i><i class="s" style="width:${pct(r.n_secondary_review)}%"></i><i class="f" style="width:${pct(r.n_preferred)}%"></i></span>` : "";
+    const count = (n, cls) => `<span class="${n ? cls : ""}">${fmtInt(n)}</span>`;
+    const row = (k, v, title) => `<tr${title ? ` title="${esc(title)}"` : ""}><td>${k}</td><td>${v}</td></tr>`;
+    return `<div class="entry-summary">
+      <table class="data plain summary"><tbody>
+        ${row("Pair score", r.pairs_score == null ? na("no scored pairs") : `<b>${r.pairs_score.toFixed(2)}</b> of 100`)}
+        ${row("Pairs scored", `${fmtInt(scored)} of ${fmtInt(r.n_pairs)} found (${fmtInt(r.n_rna_pairs)} RNA-RNA)${bar}`)}
+        ${row("Priority review", `${count(r.n_priority_review, "n-priority")} <span class="muted">score below 80</span>`)}
+        ${row("Secondary review", `${count(r.n_secondary_review, "n-secondary")} <span class="muted">score 80 to below 100</span>`)}
+        ${row("Ambiguous pairs", fmtInt(r.n_ambiguous_pairs), "Pairs between two Leontis-Westhof classes; not scored")}
+        ${row("RUBRIC suiteness", r.backbone_suiteness == null ? na() : `<b>${r.backbone_suiteness.toFixed(2)}</b>` +
+          (unassigned == null ? "" : ` <span class="muted">${fmtInt(unassigned)} suite${unassigned === 1 ? "" : "s"} unassigned</span>`))}
+        ${row("Pucker outliers", fmtInt(r.n_pucker_outliers))}
+      </tbody></table>
+      ${renderContext(r)}
     </div>`;
   }
 
@@ -864,29 +866,25 @@
 
     const view = { tab: "pairs", pairMode: flagged.length ? "flagged" : "all", limit: ROW_LIMIT };
 
-    host.innerHTML = renderEntryHead(row) + renderTiles(row, rep) + renderContext(row) + `
-      <div class="panel">
+    host.innerHTML = renderEntryHead(row) + renderSummary(row, rep) + `
         <div class="tabs" role="tablist">
           <button class="tab" role="tab" data-tab="pairs">Base pairs<span class="n">${fmtInt(flagged.length)} flagged</span></button>
           <button class="tab" role="tab" data-tab="backbone">Backbone suites<span class="n">${fmtInt(backbone.length)}</span></button>
           <button class="tab" role="tab" data-tab="riboses">Riboses<span class="n">${fmtInt(outliers.length + unclassified.length)}</span></button>
         </div>
         <div class="tab-body" id="tab-body"></div>
-      </div>
       <div class="downloads">
-        <div class="panel">
-          <h3>Download the full report</h3>
-          <p class="muted small">Every pair with its class, score and issues, every flagged suite and every ribose result, as JSON.</p>
+        <div>
+          <h3>Full report</h3>
+          <p>Every pair with its class, score and issues, every flagged suite and every ribose result, as JSON.</p>
           <div class="dl-row">
-            <button type="button" class="btn btn-primary" data-dl="json">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>${esc(id)}.json</button>
-            <a class="btn" href="${REPORT_URL}${encodeURIComponent(id)}.json.gz" download>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>${esc(id)}.json.gz</a>
+            <button type="button" class="link-btn" data-dl="json">Download ${esc(id)}.json</button>
+            <a href="${REPORT_URL}${encodeURIComponent(id)}.json.gz" download>Download ${esc(id)}.json.gz</a>
           </div>
         </div>
-        <div class="panel">
+        <div>
           <h3>Reproduce or view in PyMOL</h3>
-          <p class="muted small">Install RUBRIC, then write the same report and a PyMOL script that colours the flagged pairs.</p>
+          <p>Install RUBRIC, then write the same report and a PyMOL script that colours the flagged pairs.</p>
           <div class="cmd"><span>pip install rubric-rna</span><button type="button" data-copy="pip install rubric-rna">Copy</button></div>
           <div class="cmd"><span>rubric ${esc(id)} --out --pml</span><button type="button" data-copy="rubric ${esc(id)} --out --pml">Copy</button></div>
         </div>
@@ -945,14 +943,14 @@
 
   function route() {
     const id = decodeURIComponent(location.hash.slice(1)).trim().toUpperCase();
-    const isEntry = /^[0-9A-Z]{4,12}$/.test(id) && id !== "ABOUT";
+    const isEntry = /^[0-9A-Z]{4,12}$/.test(id) && id !== "ABOUT" && id !== "DATA";
     $("view-home").hidden = isEntry;
     $("view-entry").hidden = !isEntry;
     if (isEntry) {
       showEntry(id);
     } else {
       document.title = "RUBRIC-PDB-live";
-      if (id === "ABOUT") $("about").scrollIntoView({ behavior: "smooth" });
+      if (id === "ABOUT" || id === "DATA") $(id.toLowerCase()).scrollIntoView();
     }
   }
 

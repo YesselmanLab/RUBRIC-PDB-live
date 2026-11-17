@@ -18,7 +18,7 @@ new entries are released and existing ones are revised.
 | `data/failures.csv` | Entries that could not be scored, with the reason |
 | `data/updates.csv` | One line per update: entries added, revised, rescored and removed |
 | `data/manifest.json` | Per entry: RCSB revision date, status and RUBRIC version |
-| Release files | The full RUBRIC report (JSON) of every entry |
+| `<ID>.json.gz` on the `entries` branch | The full RUBRIC report (gzipped JSON) of each entry |
 
 The full report of a single entry can also be produced locally with
 `pip install rubric-rna` and `rubric <PDB ID>`.
@@ -43,6 +43,32 @@ The full report of a single entry can also be produced locally with
 | `n_unassigned_suites` | Backbone suites that fit none of the conformers |
 | `n_pucker_outliers` | Riboses whose pucker from δ and from the P-perpendicular distance disagree |
 | `rubric_version`, `scored_on` | RUBRIC version and date of scoring |
+
+## Site
+
+The site at https://yesselmanlab.github.io/RUBRIC-PDB-live/ is static and served by
+GitHub Pages from `main`; there is no server or build step.
+
+| File | Role |
+|---|---|
+| `index.html` | Page layout: search, table of entries, data reference, about |
+| `assets/app.js` | Loads `data/summary.csv` and `data/updates.csv`, draws the table and filters, and shows one entry per URL hash (`#1EHZ`) from its report |
+| `assets/zip.js` | Builds the bulk-download ZIP in the browser (see below) |
+| `assets/style.css` | Styles, light and dark |
+| `404.html` | Page for unknown addresses |
+
+Entry reports are fetched from the `entries` branch through raw.githubusercontent.com
+and decompressed in the browser. The two ZIP buttons download the reports of the
+filtered or of all entries and write them into one ZIP as they arrive. A gzip file
+and a ZIP entry hold the same deflate stream, so each report is copied into the ZIP
+without decompressing it, and unzipping gives plain `.json` files. Chrome and Edge
+write the ZIP straight to disk; other browsers keep it in memory until it is saved.
+
+Tests for `zip.js` run on every push that changes `assets/` or `tests/`:
+
+```bash
+node --test tests/
+```
 
 ## Updates
 

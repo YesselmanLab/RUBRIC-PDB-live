@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RUBRIC-PDB-live</title>
   <meta name="description" content="RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the Protein Data Bank, updated weekly.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234C72B0'/%3E%3Cpath d='M9 8h8a5 5 0 0 1 0 10h-8zM9 18l9 7' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RUBRIC-PDB-live">
+  <meta property="og:title" content="RUBRIC-PDB-live">
+  <meta property="og:description" content="RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the Protein Data Bank, updated weekly.">
+  <meta property="og:url" content="https://yesselmanlab.github.io/RUBRIC-PDB-live/">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="https://yesselmanlab.github.io/RUBRIC-PDB-live/">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%233b5d96'/%3E%3Cpath d='M10 7h7a5 5 0 0 1 0 10h-7zM10 7v18M15 17l7 8' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="assets/style.css">
   <script>
     try {
@@ -20,14 +24,12 @@
 <body>
   <header class="topbar">
     <div class="wrap topbar-inner">
-      <a class="brand" href="#" data-route="home">
-        <span class="brand-mark" aria-hidden="true">R</span>
-        <span class="brand-name">RUBRIC<span class="brand-sub">-PDB-live</span></span>
-      </a>
-      <nav class="topnav">
+      <a class="brand" href="#" data-route="home">RUBRIC-PDB-live</a>
+      <nav class="topnav" aria-label="Site">
         <a href="#" data-route="home">Browse</a>
+        <a href="#data" data-scroll="data">Data</a>
         <a href="#about" data-scroll="about">About</a>
-        <a href="https://github.com/YesselmanLab/RUBRIC-PDB-live" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/YesselmanLab/RUBRIC-PDB-live">GitHub</a>
         <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch light or dark theme" title="Switch light or dark theme">
           <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
           <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
@@ -36,48 +38,34 @@
     </div>
   </header>
 
+  <noscript>
+    <div class="wrap noscript">This site needs JavaScript to show the table and the entry pages. The results can also be
+      downloaded directly: <a href="data/summary.csv">summary.csv</a>, and each entry's report from the
+      <a href="https://github.com/YesselmanLab/RUBRIC-PDB-live/tree/entries">entries branch</a>.</div>
+  </noscript>
+
   <main>
-    <!-- Home: hero, search and the table of all entries -->
     <section id="view-home">
-      <div class="hero">
-        <div class="wrap">
-          <p class="eyebrow">Updated every week from the Protein Data Bank</p>
-          <h1>RNA structure quality for every PDB entry</h1>
-          <p class="lede">RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the PDB. Look up one structure, or filter and download the whole set.</p>
-
-          <div class="search" role="search">
-            <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
-            <input id="search-input" type="search" autocomplete="off" spellcheck="false"
-                   placeholder="Search a PDB ID (e.g. 1GID) or a title word (e.g. riboswitch)"
-                   aria-label="Search by PDB ID or title" aria-controls="search-suggest" aria-expanded="false">
-            <ul id="search-suggest" class="suggest" role="listbox" hidden></ul>
-          </div>
-          <p class="examples">Try
-            <button type="button" class="chip" data-open="1GID">1GID</button>
-            <button type="button" class="chip" data-open="1EHZ">1EHZ</button>
-            <button type="button" class="chip" data-open="7K00">7K00</button>
-          </p>
-
-          <dl class="stats" id="stats">
-            <div><dt>Entries</dt><dd id="stat-entries">&nbsp;</dd></div>
-            <div><dt>Last updated</dt><dd id="stat-updated">&nbsp;</dd></div>
-            <div><dt>RUBRIC version</dt><dd id="stat-version">&nbsp;</dd></div>
-          </dl>
+      <div class="wrap intro">
+        <h1>RUBRIC results for RNA-containing PDB entries</h1>
+        <p>Base-pair scores, backbone suite assignments and ribose pucker checks from
+          <a href="https://github.com/YesselmanLab/RUBRIC">RUBRIC</a> for every entry in the Protein Data Bank that
+          contains RNA. New and revised entries are scored every Thursday.</p>
+        <p class="status" id="status">Loading</p>
+        <div class="search" role="search">
+          <input id="search-input" type="search" autocomplete="off" spellcheck="false"
+                 placeholder="PDB ID or title words, e.g. 1EHZ or riboswitch"
+                 aria-label="Search by PDB ID or title" aria-controls="search-suggest" aria-expanded="false">
+          <ul id="search-suggest" class="suggest" role="listbox" hidden></ul>
         </div>
       </div>
 
       <div class="wrap browse" id="browse">
         <div class="browse-head">
-          <h2>All entries</h2>
+          <h2>Entries</h2>
           <div class="browse-actions">
-            <button type="button" class="btn" id="download-filtered" disabled title="Set a filter to download only the matching reports">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>
-              Filtered reports (ZIP)
-            </button>
-            <button type="button" class="btn btn-primary" id="download-all">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>
-              All reports (ZIP)
-            </button>
+            <button type="button" class="btn" id="download-filtered" disabled title="Set a filter to download only the matching reports">Download filtered reports (ZIP)</button>
+            <button type="button" class="btn" id="download-all">Download all reports (ZIP)</button>
           </div>
         </div>
 
@@ -97,7 +85,7 @@
           <label class="field">
             <span>Method</span>
             <select id="f-method">
-              <option value="">All methods</option>
+              <option value="">All</option>
               <option value="X-ray">X-ray</option>
               <option value="Cryo-EM">Cryo-EM</option>
               <option value="NMR">NMR</option>
@@ -124,26 +112,19 @@
               <input type="number" id="f-score-max" min="0" max="100" placeholder="max" aria-label="Maximum pair score">
             </div>
           </div>
-          <label class="check">
-            <input type="checkbox" id="f-priority">
-            <span>Has priority-review pairs</span>
-          </label>
-          <label class="check">
-            <input type="checkbox" id="f-rna">
-            <span>Has RNA-RNA pairs</span>
-          </label>
-          <button type="button" class="link-btn" id="f-reset">Reset filters</button>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="f-priority"> Has priority-review pairs</label>
+            <label class="check"><input type="checkbox" id="f-rna"> Has RNA-RNA pairs</label>
+          </div>
+          <button type="button" class="link-btn" id="f-reset">Reset</button>
         </form>
-
         <div class="active-chips" id="active-chips"></div>
 
         <div class="table-meta">
           <span id="result-count" aria-live="polite">Loading entries</span>
           <div class="table-tools">
             <details class="col-picker" id="col-picker">
-              <summary class="btn btn-sm">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16M9 3v4M15 10v4M9 17v4"/></svg>Columns
-              </summary>
+              <summary class="btn btn-sm">Columns</summary>
               <div class="col-menu" id="col-menu"></div>
             </details>
             <label class="page-size">Rows
@@ -153,12 +134,11 @@
             </label>
           </div>
         </div>
-
         <div class="table-wrap">
           <table class="data" id="entries-table">
             <thead><tr id="entries-head"></tr></thead>
             <tbody id="entries-body">
-              <tr><td class="empty" colspan="12"><span class="spinner"></span> Loading the table</td></tr>
+              <tr><td class="empty" colspan="12">Loading the table</td></tr>
             </tbody>
           </table>
         </div>
@@ -166,26 +146,85 @@
       </div>
     </section>
 
-    <!-- Entry: one PDB entry -->
     <section id="view-entry" hidden>
       <div class="wrap entry" id="entry"></div>
     </section>
 
-    <section class="about" id="about">
-      <div class="wrap about-grid">
-        <div>
-          <h2>About</h2>
-          <p><a href="https://github.com/YesselmanLab/RUBRIC" target="_blank" rel="noopener">RUBRIC</a> classifies the base pairs of an RNA structure in the Leontis-Westhof scheme and scores each pair from 0 to 100 against pairs of the same type and class in high-quality structures. It also assigns each backbone suite to a conformer, suggests target torsions for suites that fit poorly, and flags riboses whose pucker is inconsistent.</p>
-          <p>Every Thursday, the day after the weekly PDB release, this site scores the RNA entries that are new or were revised and removes entries that were made obsolete. All results come from one RUBRIC version, shown at the top of the page.</p>
+    <section class="doc" id="data">
+      <div class="wrap">
+        <h2>Data</h2>
+        <div class="doc-grid">
+          <div>
+            <h3>Files</h3>
+            <table class="data plain">
+              <tbody>
+                <tr><td><a href="data/summary.csv"><code>summary.csv</code></a></td><td>One row per scored entry; the columns are those of the table above</td></tr>
+                <tr><td><a href="data/updates.csv"><code>updates.csv</code></a></td><td>One row per weekly update: entries added, revised, rescored and removed</td></tr>
+                <tr><td><a href="data/failures.csv"><code>failures.csv</code></a></td><td>Entries that could not be scored, with the error</td></tr>
+                <tr><td><a href="data/manifest.json"><code>manifest.json</code></a></td><td>Per entry: RCSB revision date, status and RUBRIC version</td></tr>
+                <tr><td><code>&lt;ID&gt;.json.gz</code></td><td>The full RUBRIC report of one entry (below)</td></tr>
+              </tbody>
+            </table>
+
+            <h3>Programmatic access</h3>
+            <p>Each report is a gzipped JSON file on the <a href="https://github.com/YesselmanLab/RUBRIC-PDB-live/tree/entries"><code>entries</code></a> branch:</p>
+            <pre>https://raw.githubusercontent.com/YesselmanLab/RUBRIC-PDB-live/entries/&lt;ID&gt;.json.gz</pre>
+            <pre><span class="c"># Python, standard library only</span>
+import gzip, json, urllib.request
+
+url = "https://raw.githubusercontent.com/YesselmanLab/RUBRIC-PDB-live/entries/1EHZ.json.gz"
+report = json.loads(gzip.decompress(urllib.request.urlopen(url).read()))
+print(report["pairs_score"], len(report["pairs"]))</pre>
+            <p>The same report can be produced locally with <code>pip install rubric-rna</code> and <code>rubric 1EHZ --out</code>.</p>
+          </div>
+          <div>
+            <h3>Report fields</h3>
+            <table class="data plain fields">
+              <tbody>
+                <tr><td><code>pairs_score</code></td><td>Pair score of the entry, 0 to 100</td></tr>
+                <tr><td><code>tier_summary</code></td><td>Number of pairs in each tier</td></tr>
+                <tr><td><code>pairs[]</code></td><td>Every base pair: <code>res_id1</code>, <code>res_id2</code>, <code>bp_type</code>, Leontis-Westhof <code>classification</code>, <code>score</code>, <code>tier</code>, <code>num_hbonds</code>, <code>issue_details</code> (issue, severity, tier), <code>geometry</code> and <code>rigid_body</code> parameters, base <code>frames</code></td></tr>
+                <tr><td><code>backbone_suiteness</code></td><td>RUBRIC suiteness of the RNA backbone, 0 to 1</td></tr>
+                <tr><td><code>backbone_residues[]</code></td><td>Suites that fit poorly: <code>suiteness</code>, recommendation <code>tier</code>, <code>target_conformer</code> and per-torsion <code>deviations</code> (current and target values)</td></tr>
+                <tr><td><code>pucker_outliers[]</code></td><td>Riboses whose pucker from δ and from the P-perpendicular distance disagree</td></tr>
+                <tr><td><code>pucker_unclassified[]</code></td><td>Riboses whose δ gives no pucker assignment</td></tr>
+                <tr><td><code>clashes[]</code></td><td>Atom pairs within base pairs that overlap, with distance and overlap in Å</td></tr>
+              </tbody>
+            </table>
+            <p class="small muted">Residue IDs have the form <code>chain-name-number</code>, for example <code>A-G-18</code>.</p>
+
+            <h3>Recent updates</h3>
+            <div class="scroll-x">
+            <table class="data plain updates">
+              <thead><tr><th>Date</th><th>RUBRIC</th><th class="num">Entries</th><th class="num">Added</th><th class="num">Revised</th><th class="num">Rescored</th><th class="num">Removed</th></tr></thead>
+              <tbody id="updates-body"><tr><td colspan="7" class="muted">Loading</td></tr></tbody>
+            </table>
+            </div>
+            <p class="small"><a href="https://github.com/YesselmanLab/RUBRIC-PDB-live/actions/workflows/update.yml">Update job runs on GitHub Actions</a></p>
+          </div>
         </div>
-        <div>
-          <h3>Pair tiers</h3>
-          <ul class="legend">
-            <li><span class="tier tier-preferred">Preferred</span> score 100</li>
-            <li><span class="tier tier-secondary">Secondary review</span> score 80 or more, below 100</li>
-            <li><span class="tier tier-priority">Priority review</span> score below 80</li>
-          </ul>
-          <p class="muted small">Ambiguous pairs, whose geometry lies between two classes, and pairs involving DNA are not scored.</p>
+      </div>
+    </section>
+
+    <section class="doc" id="about">
+      <div class="wrap">
+        <h2>About</h2>
+        <div class="doc-grid">
+          <div>
+            <p><a href="https://github.com/YesselmanLab/RUBRIC">RUBRIC</a> classifies the base pairs of an RNA structure in the Leontis-Westhof scheme and scores each pair from 0 to 100 against pairs of the same type and class in high-quality structures. It also assigns each backbone suite to a conformer, suggests target torsions for suites that fit poorly, and flags riboses whose pucker is inconsistent.</p>
+            <p>Every Thursday, the day after the weekly PDB release, the update job scores the RNA entries that are new or were revised and removes entries that were made obsolete. When RUBRIC changes, every entry is rescored, so all results come from one RUBRIC version.</p>
+          </div>
+          <div>
+            <h3>Pair tiers</h3>
+            <table class="data plain">
+              <tbody>
+                <tr><td><span class="tier tier-preferred">Preferred</span></td><td>score 100</td></tr>
+                <tr><td><span class="tier tier-secondary">Secondary review</span></td><td>score 80 or more, below 100</td></tr>
+                <tr><td><span class="tier tier-priority">Priority review</span></td><td>score below 80</td></tr>
+              </tbody>
+            </table>
+            <p class="small muted">Ambiguous pairs, whose geometry lies between two classes, and pairs involving DNA are not scored.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -193,8 +232,16 @@
 
   <footer class="footer">
     <div class="wrap footer-inner">
-      <span>Yesselman Lab</span>
-      <span class="muted">Structures from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a></span>
+      <div>
+        <a href="https://github.com/YesselmanLab">Yesselman Lab</a>, Department of Chemistry, University of Nebraska-Lincoln
+      </div>
+      <div class="footer-links">
+        <span id="footer-version">RUBRIC</span>
+        <a href="https://github.com/YesselmanLab/RUBRIC-PDB-live/blob/main/data/LICENSE">Data: CC BY 4.0</a>
+        <a href="https://github.com/YesselmanLab/RUBRIC-PDB-live/blob/main/LICENSE">Code: MIT</a>
+        <a href="https://www.rcsb.org">Structures: RCSB PDB</a>
+        <a href="https://github.com/YesselmanLab/RUBRIC-PDB-live/issues">Report a problem</a>
+      </div>
     </div>
   </footer>
 
