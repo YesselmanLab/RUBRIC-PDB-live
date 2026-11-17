@@ -160,7 +160,7 @@
     { key: "n_preferred", label: "Preferred", num: true, title: "Pairs scoring 100" },
     { key: "n_priority_review", label: "Priority", num: true, def: true, title: "Priority-review pairs, scoring below 80" },
     { key: "n_secondary_review", label: "Secondary", num: true, def: true, title: "Secondary-review pairs, scoring 80 or more, below 100" },
-    { key: "backbone_suiteness", label: "Suiteness", num: true, def: true },
+    { key: "backbone_suiteness", label: "RUBRIC suiteness", num: true, def: true },
     { key: "n_unassigned_suites", label: "Unassigned", num: true, def: true, title: "Backbone suites that fit none of the conformers" },
     { key: "n_pucker_outliers", label: "Pucker", num: true, def: true, title: "Pucker outliers: riboses whose pucker from δ and from P-perp disagree" },
   ];
@@ -800,7 +800,7 @@
       <div class="tile"><div class="k">Pairs scored</div><div class="v">${fmtInt(scored)}</div>${bar}<div class="s">of ${fmtInt(r.n_pairs)} found, ${fmtInt(r.n_rna_pairs)} RNA-RNA</div></div>
       <div class="tile priority"><div class="k">Priority review</div><div class="v">${fmtInt(r.n_priority_review)}</div><div class="s">score below 80</div></div>
       <div class="tile secondary"><div class="k">Secondary review</div><div class="v">${fmtInt(r.n_secondary_review)}</div><div class="s">score 80 to below 100</div></div>
-      <div class="tile"><div class="k">Suiteness</div><div class="v">${r.backbone_suiteness == null ? "n/a" : r.backbone_suiteness.toFixed(2)}</div><div class="s" title="Suites that fit none of the 54 conformers">${suiteNote}</div></div>
+      <div class="tile"><div class="k">RUBRIC suiteness</div><div class="v">${r.backbone_suiteness == null ? "n/a" : r.backbone_suiteness.toFixed(2)}</div><div class="s" title="Suites that fit none of the 54 conformers">${suiteNote}</div></div>
       <div class="tile"><div class="k">Pucker outliers</div><div class="v">${fmtInt(r.n_pucker_outliers)}</div><div class="s">riboses flagged</div></div>
     </div>`;
   }
@@ -843,7 +843,7 @@
     const { peers, label } = peerGroup(r);
     return `<div class="context">
       ${contextCard("Pair score in context", r.pairs_score, 2, peers, "pairs_score", label)}
-      ${contextCard("Suiteness in context", r.backbone_suiteness, 2, peers, "backbone_suiteness", label)}
+      ${contextCard("RUBRIC suiteness in context", r.backbone_suiteness, 2, peers, "backbone_suiteness", label)}
     </div>`;
   }
 
@@ -912,7 +912,7 @@
       } else if (view.tab === "backbone") {
         shown.suite = backbone.slice(0, view.limit);
         body.innerHTML = `<div class="tab-tools"><p class="tab-note">Suites that fit their conformer poorly or match none, with RUBRIC's suggested target torsions. Fixable suites come first.</p></div>` +
-          table(`<th>Residue</th><th>Recommendation</th><th class="num">Suiteness</th><th>Target conformer</th><th>Torsions (current → target)</th>`,
+          table(`<th>Residue</th><th>Recommendation</th><th class="num">RUBRIC suiteness</th><th>Target conformer</th><th>Torsions (current → target)</th>`,
             backboneRows(shown.suite), 5, "No backbone suites flagged in this entry.") +
           (backbone.length > shown.suite.length ? `<div class="more"><button type="button" class="btn" data-more>Show all ${fmtInt(backbone.length)} rows</button></div>` : "");
       } else {
