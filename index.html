@@ -72,13 +72,21 @@
           <div class="browse-actions">
             <button type="button" class="btn" id="download-filtered">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>
-              Filtered rows (CSV)
+              Filtered reports (ZIP)
             </button>
-            <a class="btn btn-primary" href="data/summary.csv" download="rubric_pdb_summary.csv">
+            <button type="button" class="btn btn-primary" id="download-all">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>
-              Full table (CSV)
-            </a>
+              All reports (ZIP)
+            </button>
           </div>
+        </div>
+
+        <div class="zip-progress" id="zip-progress" role="status" aria-live="polite" hidden>
+          <div class="zip-progress-text">
+            <span id="zip-progress-label"></span>
+            <button type="button" class="link-btn" id="zip-cancel">Cancel</button>
+          </div>
+          <div class="zip-bar"><div class="zip-bar-fill" id="zip-bar-fill"></div></div>
         </div>
 
         <form class="filters" id="filters" autocomplete="off" onsubmit="return false">
@@ -193,6 +201,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="assets/zip.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

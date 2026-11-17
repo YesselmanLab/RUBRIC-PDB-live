@@ -418,13 +418,121 @@
       if (!e.target.closest("#col-picker")) $("col-picker").open = false;
     });
 
-    $("download-filtered").addEventListener("click", () => {
-      const cols = Object.keys(state.rows[0] || {}).filter((k) => !k.startsWith("_") &&
-        !["year", "method_group", "method_label"].includes(k));
-      const rows = state.filtered.map((r) => Object.fromEntries(cols.map((k) => [k,
-        k === "backbone_suiteness" && r[k] != null ? r[k].toFixed(2) : r[k]])));
-      downloadBlob(Papa.unparse(rows, { columns: cols }), `rubric_pdb_filtered_${state.filtered.length}.csv`, "text/csv");
-    });
+    $("download-filtered").addEventListener("click", () => downloadReports(state.filtered, "filtered"));
+    $("download-all").addEventListener("click", () => downloadReports(state.rows, "all"));
+    $("zip-cancel").addEventListener("click", () => { if (zipJob) zipJob.cancel(); });
+  }
+
+  // ---- Bulk download -------------------------------------------------------------
+  // The ZIP is built in the browser from the gzipped reports as they download. Chrome
+  // and Edge write it straight to disk; other browsers hold it in memory until the end.
+
+  const ZIP_WORKERS = 6;
+  const MEMORY_WARN_BYTES = 500e6;
+  const BYTES_PER_NT = 90;  // gzipped report size per RNA nucleotide, for the estimate
+  let zipJob = null;
+
+  const fmtBytes = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(2)} GB` : `${Math.max(1, Math.round(b / 1e6))} MB`);
+
+  async function downloadReports(rows, kind) {
+    if (zipJob || !rows.length) return;
+    const ids = rows.map((r) => r.pdb_id);
+    const estimate = rows.reduce((s, r) => s + 1000 + BYTES_PER_NT * (r.rna_nucleotides || 0), 0);
+    const date = state.lastUpdate ? state.lastUpdate.date : new Date().toISOString().slice(0, 10);
+    const name = kind === "all" ? `rubric_pdb_reports_${date}.zip` : `rubric_pdb_reports_${ids.length}_entries.zip`;
+    let file = null;
+    if (typeof window.showSaveFilePicker === "function") {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: name, types: [{ description: "ZIP archive", accept: { "application/zip": [".zip"] } }] });
+        file = await handle.createWritable();
+      } catch (e) {
+        if (e.name === "AbortError") return;  // the save dialog was closed
+      }
+    }
+    if (!file && estimate > MEMORY_WARN_BYTES && !window.confirm(
+      `This download is about ${fmtBytes(estimate)}. This browser keeps the whole file in memory until it ` +
+      "finishes, which may fail for large downloads; Chrome or Edge save it straight to disk. Continue?")) {
+      return;
+    }
+
+    const chunks = [];
+    const zip = RubricZip.ZipWriter(file ? (c) => file.write(c) : (c) => { chunks.push(c); });
+    const controller = new AbortController();
+    const missing = [];
+    let next = 0;
+    let done = 0;
+    let cancelled = false;
+    zipJob = { cancel() { cancelled = true; controller.abort(); } };
+
+    const buttons = [$("download-filtered"), $("download-all")];
+    buttons.forEach((b) => { b.disabled = true; });
+    $("zip-progress").hidden = false;
+    const progress = () => {
+      $("zip-progress-label").textContent =
+        `Downloading ${fmtInt(done)} of ${fmtInt(ids.length)} reports (${fmtBytes(zip.bytes())})`;
+      $("zip-bar-fill").style.width = `${(100 * done / ids.length).toFixed(1)}%`;
+    };
+    progress();
+
+    async function fetchReport(id) {
+      for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+          const r = await fetch(`${REPORT_URL}${encodeURIComponent(id)}.json.gz`, { signal: controller.signal });
+          if (r.ok) return new Uint8Array(await r.arrayBuffer());
+          if (r.status === 404) return null;
+        } catch (e) {
+          if (cancelled) throw e;
+        }
+        await new Promise((s) => setTimeout(s, 1000 * 2 ** attempt));
+      }
+      return null;
+    }
+
+    async function worker() {
+      while (next < ids.length && !cancelled) {
+        const id = ids[next++];
+        const gz = await fetchReport(id);
+        if (cancelled) return;
+        if (gz) await zip.addGzip(`rubric_pdb_reports/${id}.json`, gz);
+        else missing.push(id);
+        done++;
+        progress();
+      }
+    }
+
+    try {
+      await Promise.all(Array.from({ length: ZIP_WORKERS }, worker));
+      if (cancelled) throw new Error("cancelled");
+      if (missing.length) {
+        await zip.addText("rubric_pdb_reports/missing.txt",
+          "These reports could not be downloaded:\n" + missing.join("\n") + "\n");
+      }
+      await zip.finish();
+      if (file) await file.close();
+      else saveBlob(new Blob(chunks, { type: "application/zip" }), name);
+      toast(missing.length ? `Saved; ${missing.length} reports could not be downloaded (see missing.txt)` : "Download complete");
+    } catch (e) {
+      const byUser = cancelled;
+      zipJob.cancel();
+      if (file) await file.abort().catch(() => {});
+      toast(byUser ? "Download cancelled" : `Download failed: ${e.message}`);
+    } finally {
+      zipJob = null;
+      buttons.forEach((b) => { b.disabled = false; });
+      $("zip-progress").hidden = true;
+    }
+  }
+
+  function saveBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
   // ---- Search box ----------------------------------------------------------------
