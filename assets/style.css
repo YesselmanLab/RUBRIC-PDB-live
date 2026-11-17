@@ -433,19 +433,14 @@ td.empty { text-align: center; color: var(--muted); padding: 40px 12px; white-sp
 .ctx-scale { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-top: 4px; }
 @media (max-width: 760px) { .context { grid-template-columns: 1fr; } }
 
-/* ---- Hero drawing: a tRNA cloverleaf ------------------------------------ */
-:root { --hero-pair: #b9c2d0; }
-:root[data-theme="dark"] { --hero-pair: #4a5568; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --hero-pair: #4a5568; } }
-.hero-wrap { position: relative; }
-.hero-art {
-  position: absolute; right: 56px; top: -30px; width: 300px; height: auto; pointer-events: none;
-}
-.hero-art .bb { fill: none; stroke: var(--accent); stroke-width: 1.6; opacity: .45; stroke-linejoin: round; }
-.hero-art line { stroke-width: 2.4; stroke-linecap: round; }
-.hero-art line.hot { stroke-width: 3; }
-.hero-art circle { fill: var(--surface); stroke: var(--accent); stroke-width: 1.6; }
-@media (max-width: 1080px) { .hero-art { display: none; } }
+/* ---- Hero structure: 1EHZ rendered in PyMOL -------------------------- */
+.hero-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: center; }
+.hero-figure { margin: 0; width: 340px; text-align: center; }
+.hero-figure img { display: block; width: 100%; height: auto; transition: transform .25s; }
+.hero-figure a:hover img { transform: scale(1.02); }
+.hero-figure figcaption { margin-top: 8px; font-size: .82rem; color: var(--muted); line-height: 1.45; }
+.hero-figure figcaption a { font-family: var(--mono); }
+@media (max-width: 1080px) { .hero-wrap { grid-template-columns: minmax(0, 1fr); } .hero-figure { display: none; } }
 
 .footer-links { display: flex; gap: 6px 18px; flex-wrap: wrap; }
 .footer-links a { color: var(--muted); }
