@@ -298,6 +298,16 @@
     renderChips();
     filtersToUrl();
     renderTable();
+    updateFilteredButton();
+  }
+
+  // Filtered reports need at least one filter and one matching entry.
+  function updateFilteredButton() {
+    const b = $("download-filtered");
+    const filtered = FILTERS.some((f) => fieldValue(f));
+    b.disabled = Boolean(zipJob) || !filtered || !state.filtered.length;
+    b.title = !filtered ? "Set a filter to download only the matching reports"
+      : !state.filtered.length ? "No entries match the filters" : "";
   }
 
   function sortRows() {
@@ -519,7 +529,8 @@
       toast(byUser ? "Download cancelled" : `Download failed: ${e.message}`);
     } finally {
       zipJob = null;
-      buttons.forEach((b) => { b.disabled = false; });
+      $("download-all").disabled = false;
+      updateFilteredButton();
       $("zip-progress").hidden = true;
     }
   }
