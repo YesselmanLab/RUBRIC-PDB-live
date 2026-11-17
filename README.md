@@ -54,6 +54,7 @@ GitHub Pages from `main`; there is no server or build step.
 | `index.html` | Page layout: search, table of entries, about |
 | `assets/app.js` | Loads `data/summary.csv` and `data/updates.csv`, draws the table and filters, and shows one entry per URL hash (`#1EHZ`) from its report |
 | `assets/zip.js` | Builds the bulk-download ZIP in the browser (see below) |
+| `assets/rubric3d.js` | Interactive 3D view on each entry page: Mol* draws the structure from RCSB, coloured from the entry's report |
 | `assets/style.css` | Styles, light and dark |
 | `404.html` | Page for unknown addresses |
 

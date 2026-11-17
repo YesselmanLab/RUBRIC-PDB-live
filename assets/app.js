@@ -9,8 +9,7 @@
 
   const REPORT_URL = "https://raw.githubusercontent.com/YesselmanLab/RUBRIC-PDB-live/entries/";
   const RCSB_URL = "https://www.rcsb.org/structure/";
-  const RCSB_IMAGE = (id) => `https://cdn.rcsb.org/images/structures/${id.toLowerCase()}_assembly-1.jpeg`;
-  const RCSB_IMAGE_MODEL = (id) => `https://cdn.rcsb.org/images/structures/${id.toLowerCase()}_model-1.jpeg`;
+  const MOLSTAR_URL = "https://cdn.jsdelivr.net/npm/molstar@5.13.1/build/viewer/";
   const ROW_LIMIT = 300;  // rows shown at first in the entry tables
 
   const state = {
@@ -102,6 +101,7 @@
     const next = currentTheme() === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     store.set("rubric-theme", next);
+    if (viewer3d) viewer3d.setBackground(surfaceColor());
   });
 
   // ---- Data loading ------------------------------------------------------------
@@ -676,7 +676,8 @@
       const cls = p.classification || {};
       const issues = (p.issue_details || []).map((d) =>
         `<span class="issue${d.tier === "Of Concern" ? " concern" : ""}" title="${esc(d.tier || "")}${d.severity != null ? " · severity " + d.severity : ""}">${esc(issueLabel(d.issue))}</span>`).join("");
-      return `<tr>
+      const color = p.tier === "Priority review" ? "red" : p.tier === "Secondary review" ? "orange" : "grey";
+      return `<tr class="pick" data-res="${esc(p.res_id1)} ${esc(p.res_id2)}" data-color="${color}" title="Show this pair in 3D">
         <td>${tierPill(p.tier, cls.is_ambiguous)}</td>
         <td>${resHtml(p.res_id1)}</td>
         <td>${resHtml(p.res_id2)}</td>
@@ -690,7 +691,7 @@
   }
 
   function backboneRows(list) {
-    return list.map((b, i) => `<tr>
+    return list.map((b, i) => `<tr class="pick" data-res="${esc(b.res_id)}" data-color="red" title="Show this suite in 3D">
         <td>${resHtml(b.res_id)}</td>
         <td><span class="tier tier-none">${esc(BB_TIERS[b.tier] || b.tier || "")}</span></td>
         <td class="num">${b.suiteness == null ? na() : Number(b.suiteness).toFixed(2)}</td>
@@ -701,7 +702,7 @@
   }
 
   function puckerRows(list, unclassified) {
-    return list.map((p, i) => `<tr>
+    return list.map((p, i) => `<tr class="pick" data-res="${esc(p.res_id)}" data-color="red" title="Show this ribose in 3D">
         <td>${resHtml(p.res_id)}</td>
         <td class="num">${p.delta == null ? na() : Number(p.delta).toFixed(1) + "°"}</td>
         <td class="num">${p.pperp == null ? na() : Number(p.pperp).toFixed(2) + " Å"}</td>
@@ -720,7 +721,6 @@
   function entrySkeleton(id) {
     return `${BACK}
       <div class="entry-head"><div class="entry-head-main">
-        <div class="thumb skeleton"></div>
         <div style="flex:1"><div class="entry-id">${esc(id)}</div>
         <div class="skeleton" style="height:20px;width:70%;margin:10px 0"></div>
         <div class="skeleton" style="height:14px;width:45%"></div></div>
@@ -763,8 +763,6 @@
     return `${BACK}
       <div class="entry-head">
         <div class="entry-head-main">
-          <img class="thumb" src="${RCSB_IMAGE(r.pdb_id)}" alt="Structure of ${esc(r.pdb_id)} (image from RCSB PDB)" loading="lazy"
-               onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${RCSB_IMAGE_MODEL(r.pdb_id)}'}else{this.style.display='none'}">
           <div style="flex:1;min-width:0">
             <div class="entry-id">${esc(r.pdb_id)}</div>
             <div class="entry-title">${esc(r.title) || na("untitled")}</div>
@@ -847,6 +845,79 @@
     </div>`;
   }
 
+  // ---- 3D viewer (Mol*, loaded on the first entry page that needs it) ---------------
+
+  let viewer3d = null;
+  let molstarLoading = null;
+  const VIEW_COLORS = () => ({ red: Rubric3D.colors.RED, orange: Rubric3D.colors.ORANGE, grey: "#4c72b0" });
+  const surfaceColor = () => getComputedStyle(document.documentElement).getPropertyValue("--surface").trim() || "#ffffff";
+
+  function loadMolstar() {
+    if (window.molstar) return Promise.resolve();
+    if (!molstarLoading) {
+      molstarLoading = new Promise((resolve, reject) => {
+        const css = document.createElement("link");
+        css.rel = "stylesheet";
+        css.href = MOLSTAR_URL + "molstar.css";
+        document.head.appendChild(css);
+        const js = document.createElement("script");
+        js.src = MOLSTAR_URL + "molstar.js";
+        js.onload = resolve;
+        js.onerror = () => { molstarLoading = null; reject(new Error("the viewer could not be downloaded")); };
+        document.head.appendChild(js);
+      });
+    }
+    return molstarLoading;
+  }
+
+  function disposeViewer() {
+    if (viewer3d) {
+      try { viewer3d.dispose(); } catch (e) { /* already gone */ }
+      viewer3d = null;
+    }
+  }
+
+  function viewerPanel(rep) {
+    const n = Rubric3D.counts(rep);
+    const layer = (key, label, cls, on) => `<label class="check layer">
+        <input type="checkbox" data-layer="${key}" ${on ? "checked" : ""}><i class="sw ${cls}"></i>${label}
+        <span class="muted">${fmtInt(n[key])}</span></label>`;
+    return `<div class="panel viewer-panel">
+        <div class="viewer-box">
+          <div class="viewer3d" id="viewer3d"></div>
+          <p class="viewer-status" id="viewer3d-status"><span><span class="spinner"></span> Loading the 3D structure</span></p>
+        </div>
+        <div class="viewer-side">
+          <h3>3D structure</h3>
+          <p class="muted small">Drag to rotate, scroll to zoom. Click a row in the tables below to show it here.</p>
+          <div class="layers">
+            ${layer("priority", "Priority review", "sw-red", true)}
+            ${layer("secondary", "Secondary review", "sw-orange", false)}
+            ${layer("backbone", "Unassigned backbone", "sw-red", false)}
+          </div>
+          <button type="button" class="btn btn-sm" data-view-reset>Reset view</button>
+          <p class="muted small viewer-credit">Structure from the RCSB PDB, shown with <a href="https://molstar.org" target="_blank" rel="noopener">Mol*</a>.</p>
+        </div>
+      </div>`;
+  }
+
+  async function mountViewer(id, rep) {
+    disposeViewer();
+    const box = $("viewer3d");
+    const status = $("viewer3d-status");
+    if (!box) return;
+    try {
+      await loadMolstar();
+      if (!document.body.contains(box)) return;
+      const v = await Rubric3D.create(box, id, rep, { background: surfaceColor() });
+      if (!document.body.contains(box)) { v.dispose(); return; }
+      viewer3d = v;
+      status.hidden = true;
+    } catch (err) {
+      if (document.body.contains(status)) status.textContent = `The 3D structure could not be shown: ${err.message}.`;
+    }
+  }
+
   function renderEntry(host, row, data) {
     const rep = data.report;
     const id = row.pdb_id;
@@ -864,7 +935,7 @@
 
     const view = { tab: "pairs", pairMode: flagged.length ? "flagged" : "all", limit: ROW_LIMIT };
 
-    host.innerHTML = renderEntryHead(row) + renderTiles(row, rep) + renderContext(row) + `
+    host.innerHTML = renderEntryHead(row) + renderTiles(row, rep) + renderContext(row) + viewerPanel(rep) + `
       <div class="panel">
         <div class="tabs" role="tablist">
           <button class="tab" role="tab" data-tab="pairs">Base pairs<span class="n">${fmtInt(flagged.length)} flagged</span></button>
@@ -927,7 +998,24 @@
       }
     };
 
+    host.onchange = (e) => {
+      const box = e.target.closest("[data-layer]");
+      if (box && viewer3d) viewer3d.setLayers({ [box.dataset.layer]: box.checked });
+    };
     host.onclick = (e) => {
+      if (e.target.closest("[data-view-reset]")) {
+        host.querySelectorAll("tr.picked").forEach((t) => t.classList.remove("picked"));
+        if (viewer3d) viewer3d.reset();
+        return;
+      }
+      const pick = e.target.closest("tr.pick");
+      if (pick && viewer3d) {
+        host.querySelectorAll("tr.picked").forEach((t) => t.classList.remove("picked"));
+        pick.classList.add("picked");
+        viewer3d.focusResidues(pick.dataset.res.split(" "), VIEW_COLORS()[pick.dataset.color]);
+        $("viewer3d").closest(".viewer-panel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }
       const tab = e.target.closest("[data-tab]");
       if (tab) { view.tab = tab.dataset.tab; view.limit = ROW_LIMIT; draw(); return; }
       const mode = e.target.closest("[data-mode]");
@@ -939,6 +1027,7 @@
       if (e.target.closest('[data-dl="json"]')) downloadBlob(data.text, `${id}.json`, "application/json");
     };
     draw();
+    mountViewer(id, rep);
   }
 
   // ---- Routing -----------------------------------------------------------------------
@@ -946,6 +1035,7 @@
   function route() {
     const id = decodeURIComponent(location.hash.slice(1)).trim().toUpperCase();
     const isEntry = /^[0-9A-Z]{4,12}$/.test(id) && id !== "ABOUT";
+    if (!isEntry) disposeViewer();
     $("view-home").hidden = isEntry;
     $("view-entry").hidden = !isEntry;
     if (isEntry) {

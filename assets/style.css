@@ -453,3 +453,26 @@ td.empty { text-align: center; color: var(--muted); padding: 40px 12px; white-sp
 .footer-links { display: flex; gap: 6px 18px; flex-wrap: wrap; }
 .footer-links a { color: var(--muted); }
 .footer-links a:hover { color: var(--accent); }
+
+/* ---- Entry page: 3D viewer ---------------------------------------------- */
+.viewer-panel { display: grid; grid-template-columns: minmax(0, 1fr) 260px; margin: 0 0 16px; overflow: hidden; scroll-margin-top: 74px; }
+.viewer-box { position: relative; height: 460px; border-right: 1px solid var(--border); background: var(--surface); }
+.viewer3d { position: absolute; inset: 0; }
+.viewer-box .msp-viewport-top-left-controls { display: none; }
+.viewer-status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 20px; color: var(--muted); text-align: center; }
+.viewer-side { display: flex; flex-direction: column; gap: 10px; padding: 18px; }
+.viewer-side h3 { margin: 0; }
+.viewer-side p { margin: 0; }
+.layers { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 6px; }
+.layer { height: auto; padding: 4px 0; white-space: nowrap; }
+.layer .sw { flex: none; }
+.layer .muted { margin-left: auto; font-variant-numeric: tabular-nums; }
+.viewer-side .btn { align-self: flex-start; }
+.viewer-credit { margin-top: auto !important; }
+@media (max-width: 760px) {
+  .viewer-panel { grid-template-columns: minmax(0, 1fr); }
+  .viewer-box { height: 340px; border-right: 0; border-bottom: 1px solid var(--border); }
+}
+tr.pick { cursor: pointer; }
+tr.pick:hover { background: var(--accent-soft); }
+tr.picked, tr.picked:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
