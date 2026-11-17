@@ -51,7 +51,7 @@ GitHub Pages from `main`; there is no server or build step.
 
 | File | Role |
 |---|---|
-| `index.html` | Page layout: search, table of entries, data reference, about |
+| `index.html` | Page layout: search, table of entries, about |
 | `assets/app.js` | Loads `data/summary.csv` and `data/updates.csv`, draws the table and filters, and shows one entry per URL hash (`#1EHZ`) from its report |
 | `assets/zip.js` | Builds the bulk-download ZIP in the browser (see below) |
 | `assets/style.css` | Styles, light and dark |
