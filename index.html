@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=20261117b">
+  <link rel="stylesheet" href="assets/style.css?v=20261117c">
   <script>
     try {
       var t = localStorage.getItem("rubric-theme");
@@ -67,11 +67,16 @@
           </div>
           <figure class="hero-figure">
             <a href="#1GID" title="Open the RUBRIC results for 1GID">
-              <img src="assets/hero-1gid.png" width="610" height="677"
-                   alt="3D structure of the P4-P6 domain of the Tetrahymena group I intron (PDB 1GID, chain A), with base pairs and backbone that RUBRIC flags shown in red and orange">
+              <img src="assets/hero-1gid.png?v=20261117c" width="493" height="1000"
+                   alt="3D structure of 1GID chain A in grey, with base pairs and backbone that RUBRIC flags shown in red and orange">
             </a>
-            <figcaption><a href="#1GID">1GID</a>, <i>Tetrahymena</i> P4-P6 (chain A). Red: priority-review pairs
-              and unassigned backbone suites. Orange: secondary-review pairs.</figcaption>
+            <figcaption class="hero-key">
+              <a class="hero-key-id" href="#1GID">1GID</a>
+              <span class="hero-key-sub"><i>Tetrahymena</i> P4-P6, chain A</span>
+              <span class="key-row"><i class="sw sw-grey"></i>preferred</span>
+              <span class="key-row"><i class="sw sw-orange"></i>secondary-review pairs</span>
+              <span class="key-row"><i class="sw sw-red"></i>priority-review pairs and unassigned backbone</span>
+            </figcaption>
           </figure>
         </div>
       </div>
@@ -216,7 +221,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <script src="assets/zip.js?v=20261117b"></script>
-  <script src="assets/app.js?v=20261117b"></script>
+  <script src="assets/zip.js?v=20261117c"></script>
+  <script src="assets/app.js?v=20261117c"></script>
 </body>
 </html>

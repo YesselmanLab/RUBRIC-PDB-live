@@ -37,10 +37,13 @@ cmd.set("stick_radius", 0.28)
 cmd.color("r_orange", f"m and resi {secondary} and elem C+N+O")
 cmd.color("r_red", f"m and resi {priority} and elem C+N+O")
 
-cmd.orient("m")
-cmd.turn("z", 90)
-cmd.turn("y", 240)
-cmd.turn("z", -40)
+# Same orientation as Fig. S12A (camera view of 7A_1GID_current.pse).
+cmd.set_view((0.15256021916866302, -0.6710037589073181, 0.7255889177322388,
+              -0.9444023370742798, -0.31534847617149353, -0.09305790066719055,
+              0.29125556349754333, -0.6710509657859802, -0.6818069815635681,
+              0.0, -0.0, -381.6987609863281,
+              42.55404281616211, 62.22097396850586, 80.97030639648438,
+              300.9342041015625, 462.46331787109375, -20.0))
 cmd.zoom("m", 3, complete=1)
 
 cmd.bg_color("white")
@@ -51,10 +54,10 @@ cmd.set("specular", 0.25)
 cmd.set("ray_shadows", 0)
 cmd.set("depth_cue", 0)
 cmd.set("antialias", 2)
-cmd.png(out, width=1000, height=1000, dpi=150, ray=1)
+cmd.png(out, width=1400, height=1400, dpi=150, ray=1)
 
-# Trim the transparent margin and size for the page (shown at up to 360 px wide).
+# Trim the transparent margin and size for the page (shown 440 px tall).
 im = Image.open(out)
 im = im.crop(im.getchannel("A").getbbox())
-im.thumbnail((800, 800), Image.LANCZOS)
+im.thumbnail((1000, 1000), Image.LANCZOS)
 im.save(out, optimize=True)
