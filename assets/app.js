@@ -895,6 +895,7 @@
             ${layer("secondary", "Secondary review", "sw-orange", false)}
             ${layer("backbone", "Unassigned backbone", "sw-red", false)}
           </div>
+          <div class="chains" id="viewer3d-chains" hidden></div>
           <button type="button" class="btn btn-sm" data-view-reset>Reset view</button>
           <p class="muted small viewer-credit">Structure from the RCSB PDB, shown with <a href="https://molstar.org" target="_blank" rel="noopener">Mol*</a>.</p>
         </div>
@@ -913,9 +914,43 @@
       if (!document.body.contains(box)) { v.dispose(); return; }
       viewer3d = v;
       status.hidden = true;
+      renderChains();
     } catch (err) {
       if (document.body.contains(status)) status.textContent = `The 3D structure could not be shown: ${err.message}.`;
     }
+  }
+
+  // Chain list beside the viewer, shown when the entry has more than one RNA chain.
+  function renderChains() {
+    const host = $("viewer3d-chains");
+    if (!host || !viewer3d) return;
+    const chains = viewer3d.chains();
+    if (chains.length < 2) { host.hidden = true; return; }
+    const hidden = viewer3d.hiddenChains();
+    host.innerHTML = `<div class="chains-head"><h4>Chains <span class="muted">${fmtInt(chains.length)}</span></h4>
+        <span><button type="button" class="link-btn" data-chains="all">All</button>
+        <button type="button" class="link-btn" data-chains="none">None</button></span></div>
+      ${chains.length > 20 ? `<input type="search" class="chain-filter" data-chain-filter placeholder="Filter by ID or name" aria-label="Filter chains">` : ""}
+      <div class="chain-list">${chains.map((c) => `
+        <div class="chain-row" data-chain-row="${esc(c.id)}" data-search="${esc((c.id + " " + c.name).toLowerCase())}">
+          <label class="check"><input type="checkbox" data-chain="${esc(c.id)}" ${hidden.has(c.id) ? "" : "checked"}>
+            <span class="chain-id">${esc(c.id)}</span><span class="chain-name" title="${esc(c.name)}">${esc(c.name) || "&nbsp;"}</span></label>
+          <span class="chain-nt">${fmtInt(c.nt)} nt${c.dna ? " DNA" : ""}</span>
+          <button type="button" class="link-btn chain-only" data-only="${esc(c.id)}" title="Show only chain ${esc(c.id)}">only</button>
+        </div>`).join("")}</div>`;
+    host.hidden = false;
+  }
+
+  function syncChainBoxes() {
+    if (!viewer3d) return;
+    const hidden = viewer3d.hiddenChains();
+    document.querySelectorAll("#viewer3d-chains [data-chain]").forEach((b) => { b.checked = !hidden.has(b.dataset.chain); });
+  }
+
+  function setHidden(ids) {
+    if (!viewer3d) return;
+    viewer3d.setHiddenChains(ids);
+    syncChainBoxes();
   }
 
   function renderEntry(host, row, data) {
@@ -1000,9 +1035,29 @@
 
     host.onchange = (e) => {
       const box = e.target.closest("[data-layer]");
-      if (box && viewer3d) viewer3d.setLayers({ [box.dataset.layer]: box.checked });
+      if (box && viewer3d) { viewer3d.setLayers({ [box.dataset.layer]: box.checked }); return; }
+      if (e.target.closest("[data-chain]")) {
+        setHidden([...host.querySelectorAll("[data-chain]")].filter((b) => !b.checked).map((b) => b.dataset.chain));
+      }
+    };
+    host.oninput = (e) => {
+      const f = e.target.closest("[data-chain-filter]");
+      if (!f) return;
+      const q = f.value.trim().toLowerCase();
+      host.querySelectorAll("[data-chain-row]").forEach((r) => { r.hidden = q && !r.dataset.search.includes(q); });
     };
     host.onclick = (e) => {
+      const all = e.target.closest("[data-chains]");
+      if (all && viewer3d) {
+        setHidden(all.dataset.chains === "all" ? [] : viewer3d.chains().map((c) => c.id));
+        return;
+      }
+      const only = e.target.closest("[data-only]");
+      if (only && viewer3d) {
+        e.preventDefault();
+        setHidden(viewer3d.chains().map((c) => c.id).filter((c) => c !== only.dataset.only));
+        return;
+      }
       if (e.target.closest("[data-view-reset]")) {
         host.querySelectorAll("tr.picked").forEach((t) => t.classList.remove("picked"));
         if (viewer3d) viewer3d.reset();
@@ -1013,6 +1068,7 @@
         host.querySelectorAll("tr.picked").forEach((t) => t.classList.remove("picked"));
         pick.classList.add("picked");
         viewer3d.focusResidues(pick.dataset.res.split(" "), VIEW_COLORS()[pick.dataset.color]);
+        syncChainBoxes();
         $("viewer3d").closest(".viewer-panel").scrollIntoView({ behavior: "smooth", block: "nearest" });
         return;
       }
