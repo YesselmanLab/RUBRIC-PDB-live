@@ -1,5 +1,7 @@
 # RUBRIC-PDB-live
 
+[![Update RUBRIC results](https://github.com/YesselmanLab/RUBRIC-PDB-live/actions/workflows/update.yml/badge.svg)](https://github.com/YesselmanLab/RUBRIC-PDB-live/actions/workflows/update.yml)
+
 RUBRIC base-pair, backbone and ribose results for every RNA-containing entry in the
 Protein Data Bank, updated weekly.
 
